@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Ultimate Firebase Bookkeeping</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        .tooltip {
+            border-bottom: 1px dotted #007bff;
+            cursor: help;
+            color: #007bff;
+        }
+        .tooltip:hover::after {
+            content: attr(data-tip-full);
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            width: 250px;
+            z-index: 1000;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f7fa;
+            --card-bg: white;
+            --text: #333;
+            --header-bg: linear-gradient(135deg, #007bff, #0056b3);
+            --nav-bg: #2c3e50;
+            --border: #ddd;
+            --hover: #007bff;
+            --danger: #dc3545;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        header {
+            background: var(--header-bg);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1100;
+        }
+        header h1 { font-size: 2rem; font-weight: 500; }
+        header p { font-size: 1rem; opacity: 0.9; }
+        #connection-status { font-size: 0.9rem; margin-top: 0.5rem; }
+        #auth-controls {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        #user-email {
+            margin-right: 1rem;
+        }
+        nav {
+            background-color: var(--nav-bg);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        nav ul {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+        nav ul li {
+            margin: 0.5rem 1rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: white;
+            font-weight: 500;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        nav ul li:hover, nav ul li.active {
+            background-color: var(--hover);
+        }
+        section {
+            display: none;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        section.active { display: block; }
+        .dashboard-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .metric {
+            background: var(--card-bg);
+            padding: 1.2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .metric:hover { transform: translateY(-5px); }
+        .metric h3 { font-size: 1rem; color: #555; }
+        .metric p { font-size: 1.4rem; font-weight: 500; color: #007bff; }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th { background-color: #f8f9fa; font-weight: 600; color: #495057; }
+        tr:hover { background-color: #f1f3f5; }
+        form {
+            display: grid;
+            gap: 1rem;
+        }
+        input, select, button {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        button i { margin-right: 0.5rem; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 87vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s;
+        }
+        .close {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #555;
+        }
+        .close:hover { color: #000; }
+        #low-stock-alerts {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .actions button {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .dashboard-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .metrics-list {
+            list-style: none;
+        }
+        .metrics-list li {
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        .danger { background-color: var(--danger); }
+        .danger:hover { background-color: #c82333; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mr-2 { margin-right: 1rem; }
+        .mt-2 { margin-top: 1rem; }
+        .no-data { text-align: center; color: #888; padding: 1rem; }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .pagination button {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+        }
+        #inventory-table {
+            width: 100%;
+            min-width: 800px;
+        }
+        #inventory-table th, 
+        #inventory-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #inventory .card {
+            max-width: none;
+            margin-left: -2rem;
+            margin-right: -2rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        } 
+
+        #sales .card {
+            overflow-x: auto;
+            margin-left: -1rem;
+            margin-right: -1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        } 
+        @media (max-width: 768px) {
+            nav ul { flex-direction: column; align-items: center; }
+            .dashboard-metrics { grid-template-columns: 1fr; }
+            .modal-content { width: 95%; }
+            .dashboard-charts { grid-template-columns: 1fr; }
+            #inventory .card {
+                overflow-x: auto;
+                margin-left: -1rem;
+                margin-right: -1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            } 
+            #sales .card {
+                overflow-x: auto;
+                margin-left: -1rem;
+                margin-right: -1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            } 
+            .metric p { font-size: 1.2rem; }
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-50px); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-rocket"></i> Ultimate Firebase Bookkeeping</h1>
+        <p>Real-time Cloud-Based Business Management</p>
+        <div id="connection-status">Connecting...</div>
+        <div id="auth-controls">
+            <span id="user-email" style="display: none;"></span>
+            <button id="logout-btn" style="display: none; background: #dc3545; padding: 0.5rem 1rem; border: none; color: white; border-radius: 4px; cursor: pointer;">Logout</button>
+        </div>
+    </header>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h3><i class="fas fa-sign-in-alt"></i> Sign In</h3>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <a href="#" id="show-register">Don't have an account? Register</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" data-modal="register-modal">&times;</span>
+            <h3><i class="fas fa-user-plus"></i> Register</h3>
+            <form id="register-form">
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Password" required>
+                <button type="submit"><i class="fas fa-user-plus"></i> Register</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem;">
+                <a href="#" id="show-login">Already have an account? Sign In</a>
+            </p>
+        </div>
+    </div>
+
+    <nav>
+        <ul>
+            <li data-section="dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+            <li data-section="sales"><i class="fas fa-dollar-sign"></i> Sales</li>
+            <li data-section="inventory"><i class="fas fa-box"></i> Inventory</li>
+            <li data-section="expenses"><i class="fas fa-credit-card"></i> Expenses</li>
+            <li data-section="reports"><i class="fas fa-chart-line"></i> Reports</li>
+            <li data-section="settings"><i class="fas fa-cog"></i> Settings</li>
+            <li data-section="loan-pricing"><i class="fas fa-calculator"></i> Loan & Pricing Tool</li>
+        </ul>
+    </nav>
+
+    <section id="dashboard" class="active">
+        <div class="card">
+            <h3><i class="fas fa-filter"></i> Date Filter</h3>
+            <select id="date-filter" onchange="renderDashboard()">
+                <option value="all">All Time</option>
+                <option value="week">Last Week</option>
+                <option value="month">Last Month</option>
+                <option value="quarter">Last Quarter</option>
+                <option value="year">Last Year</option>
+            </select>
+        </div>
+        <div class="dashboard-metrics">
+            <div class="metric"><h3>Total Sales</h3><p id="total-sales">$0.00</p></div>
+            <div class="metric"><h3>Total Expenses</h3><p id="total-expenses">$0.00</p></div>
+            <div class="metric"><h3>Net Profit</h3><p id="net-profit">$0.00</p></div>
+            <div class="metric"><h3>Inventory Value</h3><p id="inventory-value">$0.00</p></div>
+            <div class="metric"><h3>Daily Profit</h3><p id="daily-profit">$0.00</p></div>
+            <div class="metric"><h3>Weekly Profit</h3><p id="weekly-profit">$0.00</p></div>
+            <div class="metric"><h3>Monthly Profit</h3><p id="monthly-profit">$0.00</p></div>
+            <div class="metric"><h3>Quarterly Profit</h3><p id="quarterly-profit">$0.00</p></div>
+            <div class="metric"><h3>Yearly Profit</h3><p id="yearly-profit">$0.00</p></div>
+            <div class="metric"><h3>Gross Margin</h3><p id="gross-margin">0%</p></div>
+            <div class="metric"><h3>Turnover</h3><p id="turnover">0x</p></div>
+            <div class="metric"><h3>Repeat Rate</h3><p id="repeat-rate">0%</p></div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-chart-bar"></i> Charts & Graphs</h3>
+            <div class="dashboard-charts">
+                <div>
+                    <h4>Sales Trend</h4>
+                    <canvas id="sales-trend-chart"></canvas>
+                </div>
+                <div>
+                    <h4>Expense Breakdown</h4>
+                    <canvas id="expense-breakdown-chart"></canvas>
+                </div>
+                <div>
+                    <h4>Profit Margin</h4>
+                    <canvas id="profit-margin-chart"></canvas>
+                </div>
+                <div>
+                    <h4>Seasonal Sales</h4>
+                    <canvas id="seasonal-sales-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-star"></i> Performance Metrics</h3>
+            <h4>Best-Selling Products</h4>
+            <ul id="best-products" class="metrics-list"></ul>
+            <h4>Top Customers</h4>
+            <ul id="top-customers" class="metrics-list"></ul>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-list"></i> Recent Activity</h3>
+            <table id="recent-activity">
+                <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination" id="recent-activity-pagination"></div>
+            <button id="load-sample-data-btn" class="mt-2"><i class="fas fa-magic"></i> Load Sample Data</button>
+        </div>
+    </section>
+
+    <section id="sales">
+        <div class="card">
+            <button id="export-sales-btn" class="mb-2"><i class="fas fa-download"></i> Export Sales Data</button>
+            <button id="export-sales-pdf" class="mb-2"><i class="fas fa-file-pdf"></i> Export Sales as PDF</button>
+            <button id="email-sales-report" class="mb-2"><i class="fas fa-envelope"></i> Email Sales Report</button>
+            <button id="add-sale-btn"><i class="fas fa-plus"></i> Add New Sale</button>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-list-alt"></i> Sales Records</h3>
+            <div class="filters">
+                <select id="sales-date-filter" aria-label="Date Filter">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                </select>
+                <input type="text" id="sales-customer-search" placeholder="🔍 Search by Customer" aria-label="Search by Customer">
+                <input type="text" id="sales-product-search-table" placeholder="🔍 Search by Product" aria-label="Search by Product">
+            </div>
+            <div id="sales-list" style="margin-top: 1rem;"></div>
+            <div class="pagination" id="sales-pagination"></div>
+        </div>
+    </section>
+
+    <section id="inventory">
+        <div class="card">
+            <button id="export-inventory-btn" class="mb-2"><i class="fas fa-download"></i> Export Inventory</button>
+            <button id="export-inventory-pdf" class="mb-2"><i class="fas fa-file-pdf"></i> Export Inventory as PDF</button>
+            <button id="email-low-stock" class="mb-2"><i class="fas fa-envelope"></i> Email Low Stock</button>
+            <button id="email-out-stock" class="mb-2"><i class="fas fa-envelope"></i> Email Out of Stock</button>
+            <button id="add-product-btn"><i class="fas fa-plus"></i> Add New Product</button>
+            <button id="generate-missing-barcodes-btn" class="mb-2">
+                <i class="fas fa-barcode"></i> Generate Missing Barcodes
+            </button>
+            <button id="print-all-barcodes-btn" class="mb-2">
+                <i class="fas fa-print"></i> Print All Barcodes
+            </button>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-boxes"></i> Inventory Management</h3>
+            <div class="filters">
+                <input type="text" id="inventory-search" placeholder="🔍 Search Products" aria-label="Search Products">
+                <select id="inventory-category-filter" aria-label="Category Filter">
+                    <option value="">All Categories</option>
+                    <option value="Braid">Braid</option>
+                    <option value="Weave">Weave</option>
+                    <option value="Loc">Loc</option>
+                    <option value="Pony">Pony</option>
+                    <option value="Twist">Twist</option>
+                    <option value="WigCap">WigCap</option>
+                    <option value="Yarn">Yarn</option>
+                </select>
+                <select id="inventory-stock-filter" aria-label="Stock Status Filter">
+                    <option value="">All Items</option>
+                    <option value="in-stock">In Stock</option>
+                    <option value="low-stock">Low Stock</option>
+                    <option value="out-of-stock">Out of Stock</option>
+                </select>
+            </div>
+            <table id="inventory-table">
+                <thead><tr><th>Product Name</th><th>Category</th><th>Cost Price</th><th>Price</th><th>Stock</th><th>Min Stock</th><th>Value</th><th>Profit Margin</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination" id="inventory-pagination"></div>
+        </div>
+    </section>
+
+    <section id="expenses">
+        <div class="card">
+            <button id="export-expenses-btn" class="mb-2"><i class="fas fa-download"></i> Export Expenses</button>
+            <button id="export-expenses-pdf" class="mb-2"><i class="fas fa-file-pdf"></i> Export Expenses as PDF</button>
+            <button id="email-expenses-report" class="mb-2"><i class="fas fa-envelope"></i> Email Expenses Report</button>
+            <button id="add-expense-btn"><i class="fas fa-plus"></i> Add New Expense</button>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-list-alt"></i> Expense Records</h3>
+            <table id="expenses-table">
+                <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination" id="expenses-pagination"></div>
+        </div>
+    </section>
+
+    <section id="reports">
+        <div class="card">
+            <h3><i class="fas fa-chart-bar"></i> Financial Reports</h3>
+            <div style="margin-bottom: 1rem;">
+                <button id="financial-summary-tab" class="active" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; cursor: pointer;">Summary</button>
+                <button id="balance-sheet-tab" style="padding: 0.5rem 1rem; background: #f1f3f5; color: #333; border: none; cursor: pointer;">Balance Sheet</button>
+                <button id="cash-flow-tab" style="padding: 0.5rem 1rem; background: #f1f3f5; color: #333; border: none; cursor: pointer;">Cash Flow</button>
+            </div>
+        </div>
+    
+        <!-- Financial Summary -->
+        <div id="financial-summary-content">
+            <div class="card">
+                <h3><i class="fas fa-chart-bar"></i> Financial Summary</h3>
+                <table id="financial-summary">
+                    <thead><tr><th>Category</th><th>Amount</th><th>% of Total</th></tr></thead>
+                    <tbody>
+                        <tr><td>Total Sales Revenue</td><td id="report-sales">$0.00</td><td id="report-sales-pct">-</td></tr>
+                        <tr><td>Total Expenses</td><td id="report-expenses">$0.00</td><td id="report-expenses-pct">-</td></tr>
+                        <tr><td>Net Profit/Loss</td><td id="report-profit">$0.00</td><td id="report-profit-pct">-</td></tr>
+                        <tr><td>Current Inventory Value</td><td id="report-inventory">$0.00</td><td id="report-inventory-pct">-</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h3>
+                <div id="low-stock-alerts">Loading stock status...</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-database"></i> Data Management</h3>
+                <button id="export-all-data-btn" class="mr-2"><i class="fas fa-download"></i> Export All Data</button>
+                <button id="clear-all-data-btn" class="danger"><i class="fas fa-trash"></i> Clear All Data</button>
+            </div>
+        </div>
+    
+        <!-- Balance Sheet -->
+        <div id="balance-sheet-content" style="display: none;">
+            <div class="card">
+                <h3><i class="fas fa-balance-scale"></i> Balance Sheet</h3>
+                <p><strong>As of:</strong> <span id="balance-sheet-date">Loading...</span></p>
+                <table id="balance-sheet-table">
+                    <thead><tr><th>Account</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        <tr><th colspan="2" style="text-align: left;">Assets</th></tr>
+                        <tr><td>Cash (Not tracked directly)</td><td id="cash-asset">$0.00</td></tr>
+                        <tr><td>Accounts Receivable (Not implemented)</td><td id="receivables">$0.00</td></tr>
+                        <tr><td>Inventory</td><td id="inventory-asset">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Total Assets</th><td id="total-assets">$0.00</td></tr>
+                        
+                        <tr><th colspan="2" style="text-align: left;">Liabilities</th></tr>
+                        <tr><td>Accounts Payable (Not implemented)</td><td id="payables">$0.00</td></tr>
+                        <tr><td>Loans Payable</td><td id="loans-payable">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Total Liabilities</th><td id="total-liabilities">$0.00</td></tr>
+                        
+                        <tr><th colspan="2" style="text-align: left;">Equity</th></tr>
+                        <tr><td>Owner's Equity</td><td id="owners-equity">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Total Equity</th><td id="total-equity">$0.00</td></tr>
+                        
+                        <tr><th style="text-align: right;">Total Liabilities + Equity</th><td id="total-liab-equity">$0.00</td></tr>
+                    </tbody>
+                </table>
+                <p><small>Note: This balance sheet assumes initial capital of 600,000 and a 600,000 loan. Accounts receivable/payable not tracked.</small></p>
+            </div>
+        </div>
+    
+        <!-- Cash Flow Statement -->
+        <div id="cash-flow-content" style="display: none;">
+            <div class="card">
+                <h3><i class="fas fa-money-bill-wave"></i> Cash Flow Statement</h3>
+                <p><strong>Period:</strong> <span id="cash-flow-period">Loading...</span></p>
+                <table id="cash-flow-table">
+                    <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+                    <tbody>
+                        <tr><th colspan="2" style="text-align: left;">Cash Flow from Operations</th></tr>
+                        <tr><td>Cash Received from Customers</td><td id="cash-from-sales">$0.00</td></tr>
+                        <tr><td>Cash Paid for Expenses</td><td id="cash-to-expenses">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Net Cash from Operations</th><td id="net-cash-operations">$0.00</td></tr>
+                        
+                        <tr><th colspan="2" style="text-align: left;">Cash Flow from Investing</th></tr>
+                        <tr><td>Purchases of Inventory</td><td id="cash-to-inventory">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Net Cash from Investing</th><td id="net-cash-investing">$0.00</td></tr>
+                        
+                        <tr><th colspan="2" style="text-align: left;">Cash Flow from Financing</th></tr>
+                        <tr><td>Loan Proceeds</td><td id="loan-proceeds">$0.00</td></tr>
+                        <tr><td>Loan Repayments</td><td id="loan-repayments">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Net Cash from Financing</th><td id="net-cash-financing">$0.00</td></tr>
+                        
+                        <tr><th style="text-align: right;">Net Change in Cash</th><td id="net-change-cash">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Opening Cash Balance</th><td id="opening-cash">$0.00</td></tr>
+                        <tr><th style="text-align: right;">Closing Cash Balance</th><td id="closing-cash">$0.00</td></tr>
+                    </tbody>
+                </table>
+                <p><small>Note: This cash flow assumes initial cash of 600,000 from loan and tracks actual cash movements.</small></p>
+            </div>
+        </div>
+    </section>
+
+    <section id="settings">
+        <div class="card">
+            <h3><i class="fas fa-cloud"></i> Firebase Cloud Database</h3>
+            <button id="clear-all-data-btn-2" class="danger mr-2"><i class="fas fa-trash"></i> Clear All Cloud Data</button>
+            <button id="load-sample-data-btn-2"><i class="fas fa-magic"></i> Load Sample Data</button>
+            <div id="db-status">Checking...</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-store"></i> Business Settings</h3>
+            <form id="business-settings-form">
+                <input type="text" id="business-name" placeholder="Business Name" aria-label="Business Name">
+                <input type="number" id="default-tax" placeholder="Default Tax Rate (%)" step="0.01" aria-label="Default Tax Rate">
+                <select id="currency" aria-label="Currency">
+                    <option value="USD ($)">USD ($)</option>
+                    <option value="EUR (€)">EUR (€)</option>
+                    <option value="GBP (£)">GBP (£)</option>
+                    <option value="CAD (C$)">CAD (C$)</option>
+                    <option value="AUD (A$)">AUD (A$)</option>
+                    <option value="GHS (₵)">GHS (₵)</option>
+                </select>
+                <button type="submit"><i class="fas fa-save"></i> Save Settings</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="loan-pricing">
+        <div class="card">
+            <h3><i class="fas fa-hand-holding-usd"></i> Loan Scenario Planner</h3>
+            <p>Compare different financing options and their impact on your business.</p>
+            
+            <!-- Loan Inputs -->
+            <form id="loan-scenario-form">
+                <input type="number" id="loan-amount" placeholder="Loan Amount (e.g., 600000)" required>
+                <input type="number" id="loan-term" placeholder="Term (Months, e.g., 60)" required>
+                <input type="number" id="monthly-payment" placeholder="Monthly Payment (e.g., 20000)">
+                <small>Leave one field blank to calculate it</small>
+                <button type="submit"><i class="fas fa-calculator"></i> Calculate Loan</button>
+            </form>
+    
+            <!-- Tooltips -->
+            <small>
+                <span class="tooltip" data-tip="nominal">Nominal APR</span> | 
+                <span class="tooltip" data-tip="ear">Effective Annual Rate (EAR)</span> | 
+                <span class="tooltip" data-tip="amortization">Amortization</span>
+            </small>
+    
+            <!-- Loan Results -->
+            <h4>Loan Results</h4>
+            <table id="loan-results">
+                <tr><td>Monthly Interest Rate</td><td id="monthly-rate">-</td></tr>
+                <tr><td>Nominal APR</td><td id="nominal-apr">-</td></tr>
+                <tr><td>Effective Annual Rate (EAR)</td><td id="ear">-</td></tr>
+                <tr><td>Total Paid</td><td id="total-paid">-</td></tr>
+                <tr><td>Total Interest</td><td id="total-interest">-</td></tr>
+            </table>
+        </div>
+    
+        <!-- Pricing Tool -->
+        <div class="card">
+            <form id="pricing-form">
+                <input type="number" id="monthly-cogs" placeholder="Monthly Cost of Goods" required>
+                <input type="number" id="expected-units" placeholder="Expected Units to Sell" required>
+                <input type="number" id="profit-margin" placeholder="Desired Profit Margin (%)" required>
+                <button type="submit">Calculate Pricing</button>
+            </form>
+            
+            <h4>Pricing Results</h4>
+            <table>
+                <tr><td>Base Unit Cost</td><td id="unit-cost">$0.00</td></tr>
+                <tr><td>Loan Burden per Unit</td><td id="loan-per-unit">$0.00</td></tr>
+                <tr><td>Adjusted Cost</td><td id="adjusted-cost">$0.00</td></tr>
+                <tr><td><strong>Break-Even Units</strong></td><td id="break-even-units">0</td></tr>
+                <tr><td><strong>Selling Price</strong></td><td id="selling-price">$0.00</td></tr>
+            </table>
+            <button id="download-pricing-sheet"><i class="fas fa-download"></i> Download Pricing Sheet (CSV)</button>
+        </div>
+    
+        <!-- Scenario Management -->
+        <div class="card">
+            <h4>Save/Load Scenarios</h4>
+            <input type="text" id="scenario-name" placeholder="Name for this scenario">
+            <button id="save-scenario-btn">💾 Save Current Scenario</button>
+            <select id="load-scenario-select">
+                <option value="">Load a saved scenario...</option>
+            </select>
+            <button id="delete-scenario-btn" class="danger">🗑️ Delete Selected</button>
+        </div>
+    
+        <!-- Graphical Comparison -->
+        <div class="card">
+            <h4>Scenario Comparison</h4>
+            <canvas id="scenario-comparison-chart"></canvas>
+        </div>
+    
+        <!-- Amortization Schedule -->
+        <div class="card">
+            <h4>Loan Amortization Schedule</h4>
+            <table id="amortization-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Payment</th>
+                        <th>Interest</th>
+                        <th>Principal</th>
+                        <th>Remaining Balance</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- MODALS -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="add-product-modal">&times;</span>
+            <h3><i class="fas fa-plus"></i> Add New Product</h3>
+            <form id="add-product-form">
+                <input type="text" id="product-name" placeholder="Product Name" required>
+                <input type="text" id="product-sku" placeholder="SKU">
+                <input type="text" id="product-barcode" placeholder="Barcode (Optional)">
+                <button type="button" id="generate-barcode-btn" class="mb-2" style="background:#28a745; color:white; border:none; padding:0.5rem 1rem; border-radius:4px;">
+                    <i class="fas fa-barcode"></i> Generate Barcode
+                </button>
+                <select id="product-category" required>
+                    <option value="">Select Category</option>
+                    <option value="Braid">Braid</option>
+                    <option value="Weave">Weave</option>
+                    <option value="Loc">Loc</option>
+                    <option value="Pony">Pony</option>
+                    <option value="Twist">Twist</option>
+                    <option value="WigCap">WigCap</option>
+                    <option value="Yarn">Yarn</option>
+                </select>
+                <input type="number" id="product-cost" placeholder="Cost Price" step="0.01" required>
+                <input type="number" id="product-price" placeholder="Selling Price" step="0.01" required>
+                <input type="number" id="product-quantity" placeholder="Quantity in Stock" required>
+                <input type="number" id="product-min-stock" placeholder="Minimum Stock Level" required>
+                <input type="number" id="product-default-discount" placeholder="Default Discount (%)" step="0.1" min="0" max="100">
+                <button type="submit"><i class="fas fa-plus"></i> Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="edit-product-modal">&times;</span>
+            <h3><i class="fas fa-edit"></i> Edit Product</h3>
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-product-id">
+                <input type="text" id="edit-product-name" placeholder="Product Name" required>
+                <input type="text" id="edit-product-sku" placeholder="SKU">
+                <input type="text" id="edit-product-barcode" placeholder="Barcode (Optional)">
+                <button type="button" id="generate-edit-barcode-btn" class="mb-2" style="background:#28a745; color:white; border:none; padding:0.5rem 1rem; border-radius:4px;">
+                    <i class="fas fa-barcode"></i> Generate Barcode
+                </button>
+                <select id="edit-product-category" required>
+                    <option value="">Select Category</option>
+                    <option value="Braid">Braid</option>
+                    <option value="Weave">Weave</option>
+                    <option value="Loc">Loc</option>
+                    <option value="Pony">Pony</option>
+                    <option value="Twist">Twist</option>
+                    <option value="WigCap">WigCap</option>
+                    <option value="Yarn">Yarn</option>
+                </select>
+                <input type="number" id="edit-product-cost" placeholder="Cost Price" step="0.01" required>
+                <input type="number" id="edit-product-price" placeholder="Selling Price" step="0.01" required>
+                <input type="number" id="edit-product-quantity" placeholder="Quantity in Stock" required>
+                <input type="number" id="edit-product-min-stock" placeholder="Minimum Stock Level" required>
+                <input type="number" id="edit-product-default-discount" placeholder="Default Discount (%)" step="0.1" min="0" max="100">
+                <button type="submit"><i class="fas fa-save"></i> Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-sale-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="add-sale-modal">&times;</span>
+            <h3><i class="fas fa-dollar-sign"></i> Record New Sale</h3>
+            <form id="add-sale-form">
+                <input type="date" id="sale-date" value="" required>
+                <input type="text" id="barcode-scan" placeholder="🔍 Scan Barcode..." style="margin-bottom: 0.5rem;">
+                <input type="text" id="sale-customer" placeholder="Customer Name" required>
+                <input type="text" id="sale-product-search" placeholder="🔍 Search products..." style="margin-bottom: 0.5rem;">
+                <select id="sale-product" required>
+                    <option value="">Select Product</option>
+                </select>
+                <input type="number" id="sale-unit-price" placeholder="Unit Price" step="0.01" readonly>
+                <input type="number" id="sale-quantity" placeholder="Quantity" required>
+                <div style="margin: 0.5rem 0;">
+                    <label>
+                        <input type="checkbox" id="apply-default-discount"> Apply Default Discount?
+                    </label>
+                </div>
+                <input type="number" id="sale-discount" placeholder="Discount (%)" step="0.1" value="0">
+                <input type="number" id="sale-tax" placeholder="Tax Rate (%)" step="0.01" value="0">
+                <input type="text" id="promo-code-input" placeholder="Promo Code (Press Enter)" style="margin-bottom: 0.5rem;">
+                <button type="submit"><i class="fas fa-dollar-sign"></i> Record Sale</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-expense-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="add-expense-modal">&times;</span>
+            <h3><i class="fas fa-credit-card"></i> Add New Expense</h3>
+            <form id="add-expense-form">
+                <input type="date" id="expense-date" value="" required>
+                <select id="expense-category" required>
+                    <option value="">Select Category</option>
+                    <option value="Rent">Rent</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Supplies">Supplies</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Repairs">Repairs</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Taxes">Taxes</option>
+                    <option value="Salaries">Salaries</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="text" id="expense-description" placeholder="Description" required>
+                <input type="number" id="expense-amount" placeholder="Amount" step="0.01" required>
+                <button type="submit"><i class="fas fa-credit-card"></i> Add Expense</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="product-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" data-modal="product-modal">&times;</span>
+            <h3><i class="fas fa-info-circle"></i> Product Details</h3>
+            <p id="modal-product-name"></p>
+            <p id="modal-sku"></p>
+            <p id="modal-barcode"></p>
+            <p id="modal-category"></p>
+            <p id="modal-cost-price"></p>
+            <p id="modal-selling-price"></p>
+            <p id="modal-stock"></p>
+            <p id="modal-min-stock"></p>
+            <h4>Sales History</h4>
+            <table id="modal-sales-history">
+                <thead><tr><th>Date</th><th>Customer</th><th>Qty</th><th>Total</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <h4>Price History</h4>
+            <table id="modal-price-history">
+                <thead><tr><th>Date</th><th>Cost</th><th>Price</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        // Initialize EmailJS
+        emailjs.init("2JkO3-Ju6GCVuteLC"); // Replace with your actual User ID
+
+        // Import Firebase SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot, query, orderBy, limit, where, writeBatch, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+        const DATABASE_NAME = '';
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDY7rPoNA6MzVKHE6obBj-tr4HMUpIdOPI",
+            authDomain: "bookkeeping-211e6.firebaseapp.com",
+            projectId: "bookkeeping-211e6",
+            storageBucket: "bookkeeping-211e6.firebasestorage.app",
+            messagingSenderId: "572507957762",
+            appId: "1:572507957762:web:1537249285d8af025d151b"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app, DATABASE_NAME);
+        const auth = getAuth(app);
+        let currentUser = null;
+        let authInitialized = false;
+
+        // ✅ Enable Offline Persistence
+        /*enableIndexedDbPersistence(db).catch(err => {
+            if (err.code === 'failed-precondition') {
+                console.warn('Multiple tabs open. Offline persistence disabled.');
+            } else if (err.code === 'unimplemented') {
+                console.warn('Browser does not support IndexedDB (e.g., Safari private mode).');
+            }
+        });*/
+        enableIndexedDbPersistence(db, { 
+            synchronizeTabs: true 
+        }).catch(err => {
+            if (err.code === 'failed-precondition') {
+                // This should no longer happen with synchronizeTabs: true
+                console.warn('Persistence failed:', err.message);
+            } else if (err.code === 'unimplemented') {
+                console.warn('Your browser does not support offline persistence (e.g., Safari private mode).');
+            } else {
+                console.error('Unknown persistence error:', err);
+            }
+        });
+
+        // Helper to get user-specific collection
+        function getUserCollection(collectionName) {
+            if (!authInitialized) throw new Error('Authentication not initialized');
+            if (!currentUser) throw new Error('No user is currently signed in');
+            return collection(db, collectionName);
+        }
+
+        function getUserCustomers() {
+            return collection(db, 'users', currentUser.uid, 'customers');
+        }
+
+        function getUserPromos() {
+            return collection(db, 'users', currentUser.uid, 'promos');
+        }
+
+        function settingsRef() {
+            return doc(db, 'users', currentUser.uid, 'settings', 'business');
+        }
+
+        let currencySymbol = '₵';
+        let allProducts = [];
+        let allSales = [];
+        let allExpenses = [];
+        let allCustomers = [];
+        let allPromos = [];
+        let salesTrendChart, expenseBreakdownChart, profitMarginChart, seasonalSalesChart;
+        const now = new Date();
+        const itemsPerPage = 10;
+        let activePromo = null;
+
+        // Set today's date in forms
+        document.getElementById('sale-date').valueAsDate = new Date();
+        document.getElementById('expense-date').valueAsDate = new Date();
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('nav ul li').forEach(li => li.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelector(`nav ul li[data-section="${sectionId}"]`).classList.add('active');
+            if (sectionId === 'dashboard') renderDashboard();
+            if (sectionId === 'loan-pricing') calculatePricing(); // Auto-calculate
+        }
+
+        document.querySelectorAll('nav ul li').forEach(li => {
+            li.addEventListener('click', () => showSection(li.getAttribute('data-section')));
+        });
+
+        // Close modals
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                const modalId = closeBtn.getAttribute('data-modal');
+                closeModal(modalId);
+            });
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        });
+
+        // Auth Modals
+        function showLoginModal() {
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('register-modal').style.display = 'none';
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Registration failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('show-register').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('register-modal').style.display = 'block';
+        });
+
+        document.getElementById('show-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('register-modal').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'flex';
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
+        // Auth State Listener
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                authInitialized = true;
+                document.getElementById('login-modal').style.display = 'none';
+                document.getElementById('user-email').textContent = `Signed in as: ${user.email}`;
+                document.getElementById('user-email').style.display = 'inline';
+                document.getElementById('logout-btn').style.display = 'inline';
+                document.getElementById('connection-status').textContent = 'Connected (Authenticated)';
+                await ensureUserDataExists();
+                await loadAllData();
+                setupListeners();
+            } else {
+                currentUser = null;
+                authInitialized = true;
+                document.getElementById('user-email').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'none';
+                document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+                showLoginModal();
+            }
+        });
+
+        // Initialize user data in Firestore
+        async function ensureUserDataExists() {
+            if (!currentUser) return;
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            if (!userDocSnap.exists()) {
+                await setDoc(userDocRef, {
+                    email: currentUser.email,
+                    createdAt: new Date().toISOString(),
+                    initialized: true
+                });
+                await setDoc(settingsRef(), {
+                    name: 'My Business',
+                    tax: 0,
+                    currency: 'GHS (₵)'
+                });
+                console.log('User data initialized in Firestore');
+            }
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return currencySymbol + (amount || 0).toFixed(2);
+        }
+
+        // Pagination
+        function createPagination(paginationId, totalItems, currentPage, loadFunction) {
+            const pagination = document.getElementById(paginationId);
+            pagination.innerHTML = '';
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                if (i === currentPage) button.classList.add('active');
+                button.addEventListener('click', () => loadFunction(i));
+                pagination.appendChild(button);
+            }
+        }
+
+        // Date range helper
+        function getDateRange(period) {
+            const now = new Date();
+            let startDate = new Date(0);
+            let endDate = now;
+            switch (period) {
+                case 'day':
+                    startDate = new Date(now);
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate = new Date(now);
+                    endDate.setHours(23, 59, 59, 999);
+                    break;
+                case 'week':
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - now.getDay());
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'quarter':
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+            }
+            return {
+                start: startDate.toISOString().split('T')[0],
+                end: endDate.toISOString().split('T')[0]
+            };
+        }
+
+        // Get profit for a period
+        function getProfitForPeriod(period) {
+            const { start, end } = getDateRange(period);
+            const filteredSales = allSales.filter(s => s.date >= start && s.date <= end);
+            const filteredExpenses = allExpenses.filter(e => e.date >= start && e.date <= end);
+
+            const salesTotal = filteredSales.reduce((sum, s) => {
+                const subtotal = s.quantity * s.price;
+                const discounted = subtotal * (1 - s.discount / 100);
+                return sum + discounted * (1 + s.tax / 100);
+            }, 0);
+
+            const expensesTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+            return salesTotal - expensesTotal;
+        }
+
+        // Render dashboard
+
+        function renderDashboard() {
+            const period = document.getElementById('date-filter').value;
+            const { start, end } = getDateRange(period);
+            const filteredSales = allSales.filter(s => s.date >= start && s.date <= end);
+            const filteredExpenses = allExpenses.filter(e => e.date >= start && e.date <= end);
+    
+            updateReports(filteredSales, filteredExpenses);
+
+            // Update profit metrics
+            document.getElementById('daily-profit').textContent = formatCurrency(getProfitForPeriod('day'));
+            document.getElementById('weekly-profit').textContent = formatCurrency(getProfitForPeriod('week'));
+            document.getElementById('monthly-profit').textContent = formatCurrency(getProfitForPeriod('month'));
+            document.getElementById('quarterly-profit').textContent = formatCurrency(getProfitForPeriod('quarter'));
+            document.getElementById('yearly-profit').textContent = formatCurrency(getProfitForPeriod('year'));
+
+    
+            // Sales trend (line chart)
+            const salesByDate = filteredSales.reduce((acc, s) => {
+                const total = s.quantity * s.price * (1 + s.tax / 100);
+                acc[s.date] = (acc[s.date] || 0) + total;
+                return acc;
+            }, {});
+            const dates = Object.keys(salesByDate).sort();
+            const salesData = dates.map(d => salesByDate[d]);
+    
+            if (salesTrendChart) salesTrendChart.destroy();
+            salesTrendChart = new Chart(document.getElementById('sales-trend-chart'), {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Sales Trend',
+                        data: salesData,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: true } }
+                }
+            });
+    
+            // Expense breakdown (pie chart)
+            const expensesByCat = filteredExpenses.reduce((acc, e) => {
+                acc[e.category] = (acc[e.category] || 0) + e.amount;
+                return acc;
+            }, {});
+            const catLabels = Object.keys(expensesByCat);
+            const catData = Object.values(expensesByCat);
+    
+            if (expenseBreakdownChart) expenseBreakdownChart.destroy();
+            expenseBreakdownChart = new Chart(document.getElementById('expense-breakdown-chart'), {
+                type: 'pie',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catData,
+                        backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#6f42c1']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+    
+            // Profit margins (bar chart)
+            const margins = allProducts.map(p => ({
+                name: p.name,
+                margin: p.cost > 0 ? (p.price - p.cost) / p.cost * 100 : 0
+            })).filter(m => m.margin > 0);
+            const productLabels = margins.map(m => m.name);
+            const marginData = margins.map(m => m.margin);
+    
+            if (profitMarginChart) profitMarginChart.destroy();
+            profitMarginChart = new Chart(document.getElementById('profit-margin-chart'), {
+                type: 'bar',
+                data: {
+                    labels: productLabels,
+                    datasets: [{
+                        label: 'Profit Margin (%)',
+                        data: marginData,
+                        backgroundColor: '#007bff'
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+    
+            // Seasonal trends (bar chart, monthly sales over last 12 months)
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+            const allMonthlySales = allSales.filter(s => new Date(s.date) >= twelveMonthsAgo).reduce((acc, s) => {
+                const month = s.date.slice(0, 7); // YYYY-MM
+                const total = s.quantity * s.price * (1 + s.tax / 100);
+                acc[month] = (acc[month] || 0) + total;
+                return acc;
+            }, {});
+            const months = Object.keys(allMonthlySales).sort();
+            const monthlyData = months.map(m => allMonthlySales[m]);
+    
+            if (seasonalSalesChart) seasonalSalesChart.destroy();
+            seasonalSalesChart = new Chart(document.getElementById('seasonal-sales-chart'), {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Monthly Sales',
+                        data: monthlyData,
+                        backgroundColor: '#28a745'
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+    
+            // ✅ Enhanced: Best-Selling Products with quantity, revenue, and profit
+            const bestProducts = filteredSales.reduce((acc, sale) => {
+                const product = allProducts.find(p => p.name === sale.product);
+                const cost = product ? product.cost : 0;
+    
+                if (!acc[sale.product]) {
+                    acc[sale.product] = {
+                        quantity: 0,
+                        revenue: 0,
+                        cost: 0,
+                        discountAmount: 0
+                    };
+                }
+    
+                const subtotal = sale.quantity * sale.price;
+                const discountAmount = subtotal * (sale.discount / 100);
+                const total = subtotal * (1 - sale.discount / 100) * (1 + sale.tax / 100);
+    
+                acc[sale.product].quantity += sale.quantity;
+                acc[sale.product].revenue += total;
+                acc[sale.product].cost += sale.quantity * cost;
+                acc[sale.product].discountAmount += discountAmount;
+    
+                return acc;
+            }, {});
+    
+            // Sort by quantity (or use revenue: b[1].revenue - a[1].revenue)
+            const sortedProducts = Object.entries(bestProducts)
+                .sort((a, b) => b[1].quantity - a[1].quantity)
+                .slice(0, 5);
+    
+            document.getElementById('best-products').innerHTML = sortedProducts.map(([name, data]) => {
+                const profit = data.revenue - data.cost;
+                const avgPrice = data.revenue / data.quantity;
+                return `
+                    <li>
+                        <strong>${name}</strong> 
+                        <br>
+                        <small>
+                            Qty: <strong>${data.quantity}</strong> | 
+                            Revenue: <strong>${formatCurrency(data.revenue)}</strong> | 
+                            Profit: <strong style="color:${profit >= 0 ? 'green' : 'red'};">${formatCurrency(profit)}</strong>
+                            ${data.discountAmount > 0 ? ` | Discount Given: ${formatCurrency(data.discountAmount)}` : ''}
+                            <br>
+                            Avg Price: ${formatCurrency(avgPrice)}
+                        </small>
+                    </li>
+                `;
+            }).join('');
+    
+            const topCustomers = filteredSales.reduce((acc, s) => {
+                acc[s.customer] = (acc[s.customer] || 0) + s.quantity * s.price * (1 + s.tax / 100);
+                return acc;
+            }, {});
+            const sortedCustomers = Object.entries(topCustomers).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            document.getElementById('top-customers').innerHTML = sortedCustomers.map(([name, spend]) => `<li>${name}: ${formatCurrency(spend)}</li>`).join('');
+
+            // ✅ New Metrics
+            const totalQtySold = filteredSales.reduce((sum, s) => sum + s.quantity, 0);
+            const avgInventory = allProducts.reduce((sum, p) => sum + p.quantity, 0);
+            const turnover = avgInventory > 0 ? (totalQtySold / avgInventory).toFixed(1) : 0;
+            document.getElementById('turnover').textContent = `${turnover}x`;
+
+            const totalRevenue = filteredSales.reduce((sum, s) => {
+                const subtotal = s.quantity * s.price;
+                const discounted = subtotal * (1 - s.discount / 100);
+                return sum + discounted * (1 + s.tax / 100);
+            }, 0);
+            const totalCOGS = filteredSales.reduce((sum, s) => {
+                const product = allProducts.find(p => p.name === s.product);
+                const cost = product ? product.cost : 0;
+                return sum + s.quantity * cost;
+            }, 0);
+            const grossMargin = totalRevenue > 0 ? ((totalRevenue - totalCOGS) / totalRevenue * 100).toFixed(1) : 0;
+            document.getElementById('gross-margin').textContent = `${grossMargin}%`;
+
+            const customerCount = Object.keys(topCustomers).length;
+            const repeatCustomers = Object.values(topCustomers).filter(c => c.count > 1).length;
+            const repeatRate = customerCount > 0 ? ((repeatCustomers / customerCount) * 100).toFixed(1) : 0;
+            document.getElementById('repeat-rate').textContent = `${repeatRate}%`;
+
+            if (document.getElementById('balance-sheet-content').style.display !== 'none') {
+                renderBalanceSheet();
+            }
+            if (document.getElementById('cash-flow-content').style.display !== 'none') {
+                renderCashFlow();
+            }
+        }
+
+        // Update reports
+        function updateReports(filteredSales, filteredExpenses) {
+            const salesTotal = filteredSales.reduce((sum, s) => {
+                const subtotal = s.quantity * s.price;
+                const discounted = subtotal * (1 - s.discount / 100);
+                return sum + discounted * (1 + s.tax / 100);
+            }, 0);
+            const expensesTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const profit = salesTotal - expensesTotal;
+            document.getElementById('total-sales').textContent = formatCurrency(salesTotal);
+            document.getElementById('total-expenses').textContent = formatCurrency(expensesTotal);
+            document.getElementById('net-profit').textContent = formatCurrency(profit);
+            document.getElementById('report-sales').textContent = formatCurrency(salesTotal);
+            document.getElementById('report-expenses').textContent = formatCurrency(expensesTotal);
+            document.getElementById('report-profit').textContent = formatCurrency(profit);
+            const total = salesTotal + Math.abs(expensesTotal);
+            document.getElementById('report-sales-pct').textContent = total ? (salesTotal / total * 100).toFixed(2) + '%' : '-';
+            document.getElementById('report-expenses-pct').textContent = total ? (expensesTotal / total * 100).toFixed(2) + '%' : '-';
+            document.getElementById('report-profit-pct').textContent = profit >= 0 ? 'Profit' : 'Loss';
+        }
+
+        // Load settings
+        async function loadSettings() {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const docSnap = await getDoc(settingsRef());
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('business-name').value = data.name || '';
+                    document.getElementById('default-tax').value = data.tax || 0;
+                    document.getElementById('currency').value = data.currency || 'GHS (₵)';
+                    currencySymbol = data.currency.split(' ')[1].slice(0, -1) || '₵';
+                }
+                updateConnectionStatus();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                alert('Failed to load settings.');
+            }
+        }
+
+        // Load customers
+        async function loadCustomers() {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const snapshot = await getDocs(getUserCustomers());
+                allCustomers = [];
+                snapshot.forEach(doc => {
+                    allCustomers.push({ id: doc.id, ...doc.data() });
+                });
+                updateCustomerAutocomplete();
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        function updateCustomerAutocomplete() {
+            const input = document.getElementById('sale-customer');
+            const datalist = document.createElement('datalist');
+            datalist.id = 'customer-suggestions';
+            allCustomers.forEach(cust => {
+                const option = document.createElement('option');
+                option.value = cust.name;
+                datalist.appendChild(option);
+            });
+            input.parentNode.appendChild(datalist);
+            input.setAttribute('list', 'customer-suggestions');
+        }
+
+        // Load promos
+        async function loadPromos() {
+            if (!authInitialized || !currentUser) return [];
+            const now = new Date().toISOString();
+            const q = query(getUserPromos(), where('expiry', '>=', now));
+            const snapshot = await getDocs(q);
+            allPromos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return allPromos;
+        }
+
+        // Load products
+        async function loadProducts(page = 1) {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const productsSnapshot = await getDocs(getUserCollection('inventory'));
+                const tbody = document.getElementById('inventory-table').querySelector('tbody');
+                tbody.innerHTML = '';
+                allProducts = [];
+                if (productsSnapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">No products available. Add a product or load sample data.</td></tr>';
+                } else {
+                    productsSnapshot.forEach(doc => {
+                        allProducts.push({ ...doc.data(), id: doc.id });
+                    });
+                }
+                renderInventoryTable(allProducts, page);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Failed to load products.');
+            }
+        }
+
+        function renderInventoryTable(products, page = 1) {
+            const tbody = document.getElementById('inventory-table').querySelector('tbody');
+            tbody.innerHTML = '';
+            const startIndex = (page - 1) * itemsPerPage;
+            const paginated = products.slice(startIndex, startIndex + itemsPerPage);
+            if (paginated.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No products match the filters.</td></tr>';
+                return;
+            }
+            paginated.forEach(product => {
+                const value = product.quantity * product.cost;
+                const profitMargin = product.cost > 0 ? ((product.price - product.cost) / product.cost * 100).toFixed(2) + '%' : 'N/A';
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.name}</td>
+                    <td>${product.category}</td>
+                    <td>${formatCurrency(product.cost)}</td>
+                    <td>${formatCurrency(product.price)}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.minStock}</td>
+                    <td>${formatCurrency(value)}</td>
+                    <td>${profitMargin}</td>
+                    <td class="actions">
+                        <button class="edit-btn" data-id="${product.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-btn" data-id="${product.id}" class="danger"><i class="fas fa-trash"></i></button>
+                        <button class="details-btn" data-id="${product.id}"><i class="fas fa-info-circle"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            tbody.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditProductModal(btn.getAttribute('data-id')));
+            });
+            tbody.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteProduct(btn.getAttribute('data-id')));
+            });
+            tbody.querySelectorAll('.details-btn').forEach(btn => {
+                btn.addEventListener('click', () => showProductDetails(btn.getAttribute('data-id')));
+            });
+            document.getElementById('inventory-value').textContent = formatCurrency(
+                products.reduce((sum, p) => sum + p.quantity * p.cost, 0)
+            );
+            document.getElementById('report-inventory').textContent = formatCurrency(
+                products.reduce((sum, p) => sum + p.quantity * p.cost, 0)
+            );
+            updateLowStockAlerts(products.filter(p => p.quantity <= p.minStock).map(p => p.name));
+            createPagination('inventory-pagination', products.length, page, (p) => renderInventoryTable(products, p));
+            if (typeof groupAndRenderSales === 'function') {
+                groupAndRenderSales();
+            }
+            renderDashboard();
+        }
+
+        // Filter inventory
+        function filterInventory() {
+            const search = document.getElementById('inventory-search').value.toLowerCase();
+            const category = document.getElementById('inventory-category-filter').value;
+            const stockFilter = document.getElementById('inventory-stock-filter').value;
+            const filteredProducts = allProducts.filter(product => {
+                const matchesSearch = !search || product.name.toLowerCase().includes(search);
+                const matchesCategory = !category || product.category === category;
+                const matchesStock = !stockFilter || {
+                    'in-stock': product.quantity > product.minStock,
+                    'low-stock': product.quantity <= product.minStock && product.quantity > 0,
+                    'out-of-stock': product.quantity === 0
+                }[stockFilter];
+                return matchesSearch && matchesCategory && matchesStock;
+            });
+            renderInventoryTable(filteredProducts);
+        }
+
+        document.getElementById('inventory-search').addEventListener('input', filterInventory);
+        document.getElementById('inventory-category-filter').addEventListener('change', filterInventory);
+        document.getElementById('inventory-stock-filter').addEventListener('change', filterInventory);
+
+        // Load sales
+        async function loadSales() {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const salesSnapshot = await getDocs(query(getUserCollection('sales'), orderBy('date', 'desc')));
+                allSales = [];
+                salesSnapshot.forEach(doc => {
+                    allSales.push({ ...doc.data(), id: doc.id });
+                });
+                //groupAndRenderSales(); // Use grouped renderer
+                filterAndRenderSales();
+            } catch (error) {
+                console.error('Error loading sales:', error);
+                document.getElementById('sales-list').innerHTML = '<p>Error loading sales.</p>';
+            }
+        }
+
+        function filterAndRenderSales() {
+            let filtered = allSales;
+        
+            // Date filter
+            const dateFilter = document.getElementById('sales-date-filter').value;
+            const today = new Date().toISOString().split('T')[0];
+            const startOfWeek = new Date();
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+            const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        
+            switch (dateFilter) {
+                case 'today':
+                    filtered = filtered.filter(s => s.date === today);
+                    break;
+                case 'week':
+                    filtered = filtered.filter(s => s.date >= startOfWeek.toISOString().split('T')[0]);
+                    break;
+                case 'month':
+                    filtered = filtered.filter(s => s.date >= startOfMonth);
+                    break;
+                case 'year':
+                    filtered = filtered.filter(s => s.date.startsWith(new Date().getFullYear()));
+                    break;
+            }
+        
+            // Customer search
+            const customerSearch = document.getElementById('sales-customer-search').value.toLowerCase();
+            if (customerSearch) {
+                filtered = filtered.filter(s => s.customer.toLowerCase().includes(customerSearch));
+            }
+        
+            // Product search
+            const productSearch = document.getElementById('sales-product-search-table').value.toLowerCase();
+            if (productSearch) {
+                filtered = filtered.filter(s => s.product.toLowerCase().includes(productSearch));
+            }
+        
+            groupAndRenderSales(filtered);
+        }
+
+        // ✅ Group and render sales with daily totals
+        function groupAndRenderSales(salesList = allSales) {
+            if (!Array.isArray(salesList)) {
+                console.error('salesList is not an array:', salesList);
+                salesList = allSales;
+            }
+
+            const container = document.getElementById('sales-list');
+            container.innerHTML = '';
+
+            const dateFilter = document.getElementById('sales-date-filter')?.value;
+            const customerSearch = document.getElementById('sales-customer-search')?.value.toLowerCase() || '';
+            const productSearch = document.getElementById('sales-product-search-table')?.value.toLowerCase() || '';
+
+            const filtered = salesList.filter(sale => {
+                const matchesCustomer = !customerSearch || sale.customer.toLowerCase().includes(customerSearch);
+                const matchesProduct = !productSearch || sale.product.toLowerCase().includes(productSearch);
+                return matchesCustomer && matchesProduct;
+            });
+
+            const grouped = {};
+            filtered.forEach(sale => {
+                if (!grouped[sale.date]) grouped[sale.date] = [];
+                grouped[sale.date].push(sale);
+            });
+
+            Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+                const sales = grouped[date];
+
+                // Calculate daily totals
+                let dailyRevenue = 0;
+                let dailyCost = 0;
+                sales.forEach(sale => {
+                    const revenue = sale.quantity * sale.price * (1 + sale.tax / 100);
+                    dailyRevenue += revenue;
+                    const product = allProducts.find(p => p.name === sale.product);
+                    if (product) {
+                        dailyCost += sale.quantity * product.cost;
+                    }
+                });
+                const dailyProfit = dailyRevenue - dailyCost;
+
+                const group = document.createElement('div');
+                group.style.marginBottom = '1.5rem';
+
+                const header = document.createElement('h4');
+                header.style.cursor = 'pointer';
+                header.style.backgroundColor = '#f1f3f5';
+                header.style.padding = '0.75rem';
+                header.style.borderRadius = '4px';
+                const count = sales.length;
+                header.innerHTML = `
+                    ${date} 
+                    <span style="color:#666;">(${count} sale${count !== 1 ? 's' : ''})</span>
+                    <br>
+                    <small>
+                        Revenue: <strong>${formatCurrency(dailyRevenue)}</strong> | 
+                        Profit: <strong style="color:${dailyProfit >= 0 ? 'green' : 'red'};">${formatCurrency(dailyProfit)}</strong>
+                    </small>
+                `;
+                header.onclick = () => {
+                    const content = group.querySelector('.sales-content');
+                    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                };
+                group.appendChild(header);
+
+                const content = document.createElement('div');
+                content.className = 'sales-content';
+                content.style.display = 'block';
+                content.style.marginLeft = '1rem';
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Discount</th>
+                            <th>Tax</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+                const tbody = table.querySelector('tbody');
+                sales.forEach(sale => {
+                    const subtotal = sale.quantity * sale.price;
+                    const discounted = subtotal * (1 - sale.discount / 100);
+                    const total = discounted * (1 + sale.tax / 100);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${sale.customer}</td>
+                        <td>${sale.product}</td>
+                        <td>${sale.quantity}</td>
+                        <td>${formatCurrency(sale.price)}</td>
+                        <td>${sale.discount}%</td>
+                        <td>${sale.tax}%</td>
+                        <td>${formatCurrency(total)}</td>
+                        <td class="actions">
+                            <button class="delete-sale-btn danger" data-id="${sale.id}"><i class="fas fa-trash"></i> Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                content.appendChild(table);
+                group.appendChild(content);
+                container.appendChild(group);
+            });
+
+            document.querySelectorAll('.delete-sale-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteSale(btn.getAttribute('data-id')));
+            });
+        }
+
+        // Load expenses
+        async function loadExpenses() {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const expensesSnapshot = await getDocs(query(getUserCollection('expenses'), orderBy('date', 'desc')));
+                const tbody = document.getElementById('expenses-table').querySelector('tbody');
+                tbody.innerHTML = '';
+                allExpenses = [];
+                if (expensesSnapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No expenses available. Add an expense or load sample data.</td></tr>';
+                } else {
+                    expensesSnapshot.forEach(doc => {
+                        allExpenses.push({ ...doc.data(), id: doc.id });
+                    });
+                }
+                renderExpensesTable();
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                alert('Failed to load expenses.');
+            }
+        }
+
+        function renderExpensesTable(page = 1) {
+            const tbody = document.getElementById('expenses-table').querySelector('tbody');
+            tbody.innerHTML = '';
+            const startIndex = (page - 1) * itemsPerPage;
+            const paginated = allExpenses.slice(startIndex, startIndex + itemsPerPage);
+            paginated.forEach(expense => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${expense.date}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.description}</td>
+                    <td>${formatCurrency(expense.amount)}</td>
+                    <td class="actions">
+                        <button class="delete-expense-btn" data-id="${expense.id}" class="danger"><i class="fas fa-trash"></i> Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            tbody.querySelectorAll('.delete-expense-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteExpense(btn.getAttribute('data-id')));
+            });
+            createPagination('expenses-pagination', allExpenses.length, page, renderExpensesTable);
+            renderDashboard();
+        }
+
+        function renderBalanceSheet() {
+            const inventoryValue = allProducts.reduce((sum, p) => sum + p.quantity * p.cost, 0);
+            const totalLiabilities = 600000; // Your loan
+            const totalAssets = inventoryValue;
+            const ownersEquity = totalAssets - totalLiabilities;
+        
+            document.getElementById('balance-sheet-date').textContent = new Date().toLocaleDateString();
+            document.getElementById('inventory-asset').textContent = formatCurrency(inventoryValue);
+            document.getElementById('total-assets').textContent = formatCurrency(totalAssets);
+            document.getElementById('loans-payable').textContent = formatCurrency(totalLiabilities);
+            document.getElementById('total-liabilities').textContent = formatCurrency(totalLiabilities);
+            document.getElementById('owners-equity').textContent = formatCurrency(ownersEquity);
+            document.getElementById('total-equity').textContent = formatCurrency(ownersEquity);
+            document.getElementById('total-liab-equity').textContent = formatCurrency(totalLiabilities + ownersEquity);
+        }
+
+        function renderCashFlow() {
+            const period = document.getElementById('date-filter').value;
+            const { start, end } = getDateRange(period);
+            
+            const salesInPeriod = allSales.filter(s => s.date >= start && s.date <= end);
+            const expensesInPeriod = allExpenses.filter(e => e.date >= start && e.date <= end);
+            const inventoryCost = salesInPeriod.reduce((sum, s) => {
+                const product = allProducts.find(p => p.name === s.product);
+                return sum + (product ? s.quantity * product.cost : 0);
+            }, 0);
+        
+            const cashFromSales = salesInPeriod.reduce((sum, s) => {
+                const subtotal = s.quantity * s.price;
+                const discounted = subtotal * (1 - s.discount / 100);
+                return sum + discounted * (1 + s.tax / 100);
+            }, 0);
+        
+            const cashToExpenses = expensesInPeriod.reduce((sum, e) => sum + e.amount, 0);
+            const loanProceeds = period === 'all' ? 600000 : 0; // Only show once
+            const loanRepayments = period === 'all' ? 600000 : 20000 * 12; // Simplified
+        
+            const netOperations = cashFromSales - cashToExpenses;
+            const netInvesting = -inventoryCost;
+            const netFinancing = loanProceeds - loanRepayments;
+            const netChange = netOperations + netInvesting + netFinancing;
+            
+            let openingCash = 0;
+            if (period === 'all') openingCash = 0;
+            else if (period === 'year') openingCash = 600000;
+            else openingCash = 600000; // Simplified
+        
+            const closingCash = openingCash + netChange;
+        
+            document.getElementById('cash-flow-period').textContent = `${start} to ${end}`;
+            document.getElementById('cash-from-sales').textContent = formatCurrency(cashFromSales);
+            document.getElementById('cash-to-expenses').textContent = formatCurrency(-cashToExpenses);
+            document.getElementById('net-cash-operations').textContent = formatCurrency(netOperations);
+            document.getElementById('cash-to-inventory').textContent = formatCurrency(-inventoryCost);
+            document.getElementById('net-cash-investing').textContent = formatCurrency(netInvesting);
+            document.getElementById('loan-proceeds').textContent = formatCurrency(loanProceeds);
+            document.getElementById('loan-repayments').textContent = formatCurrency(-loanRepayments);
+            document.getElementById('net-cash-financing').textContent = formatCurrency(netFinancing);
+            document.getElementById('net-change-cash').textContent = formatCurrency(netChange);
+            document.getElementById('opening-cash').textContent = formatCurrency(openingCash);
+            document.getElementById('closing-cash').textContent = formatCurrency(closingCash);
+        }
+
+        // Load recent activity
+        async function loadRecentActivity(page = 1) {
+            if (!authInitialized || !currentUser) return;
+            try {
+                const salesQuery = query(getUserCollection('sales'), orderBy('date', 'desc'), limit(50));
+                const expensesQuery = query(getUserCollection('expenses'), orderBy('date', 'desc'), limit(50));
+                const [salesSnap, expensesSnap] = await Promise.all([getDocs(salesQuery), getDocs(expensesQuery)]);
+                let activities = [];
+                salesSnap.forEach(doc => {
+                    const sale = doc.data();
+                    const subtotal = sale.quantity * sale.price;
+                    const discounted = subtotal * (1 - sale.discount / 100);
+                    const total = discounted * (1 + sale.tax / 100);
+                    activities.push({
+                        date: sale.date,
+                        type: 'Sale',
+                        description: `${sale.quantity}x ${sale.product} to ${sale.customer}`,
+                        amount: total
+                    });
+                });
+                expensesSnap.forEach(doc => {
+                    const exp = doc.data();
+                    activities.push({
+                        date: exp.date,
+                        type: 'Expense',
+                        description: exp.description,
+                        amount: -exp.amount
+                    });
+                });
+                activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const tbody = document.getElementById('recent-activity').querySelector('tbody');
+                tbody.innerHTML = '';
+                const startIndex = (page - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const paginatedActivities = activities.slice(startIndex, endIndex);
+                paginatedActivities.forEach(act => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${act.date}</td><td>${act.type}</td><td>${act.description}</td><td>${formatCurrency(act.amount)}</td>`;
+                    tbody.appendChild(row);
+                });
+                createPagination('recent-activity-pagination', activities.length, page, loadRecentActivity);
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                alert('Failed to load recent activity.');
+            }
+        }
+
+        // Update low stock alerts
+        function updateLowStockAlerts(items) {
+            const alertsDiv = document.getElementById('low-stock-alerts');
+            if (items.length === 0) {
+                alertsDiv.innerHTML = '<p>All products are sufficiently stocked.</p>';
+            } else {
+                alertsDiv.innerHTML = items.map(item => `<p><i class="fas fa-exclamation-triangle"></i> ${item} is low on stock!</p>`).join('');
+            }
+        }
+
+        // Generate barcode
+        function generateBarcode() {
+            return String(Math.floor(100000000000 + Math.random() * 900000000000));
+        }
+
+         // Update product options in sale modal
+         function updateSaleProductOptions() {
+            const productSelect = document.getElementById('sale-product');
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            allProducts.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} (${formatCurrency(product.price)})`;
+                productSelect.appendChild(option);
+            });
+        }
+
+        // Live search in Add Sale modal
+        function setupSaleProductSearch() {
+            const searchInput = document.getElementById('sale-product-search');
+            const productSelect = document.getElementById('sale-product');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                productSelect.innerHTML = '<option value="">Select Product</option>';
+                allProducts.forEach(product => {
+                    if (product.name.toLowerCase().includes(query)) {
+                        const option = document.createElement('option');
+                        option.value = product.id;
+                        option.textContent = `${product.name} (${formatCurrency(product.price)})`;
+                        productSelect.appendChild(option);
+                    }
+                });
+            });
+        }
+
+         // Auto-fill unit price and discount when product is selected
+         document.getElementById('sale-product').addEventListener('change', () => {
+            const productId = document.getElementById('sale-product').value;
+            const product = allProducts.find(p => p.id === productId);
+            if (product) {
+                document.getElementById('sale-unit-price').value = product.price;
+                document.getElementById('sale-discount').value = product.defaultDiscount || 0;
+                document.getElementById('apply-default-discount').checked = product.defaultDiscount > 0;
+            }
+        });
+
+        // Apply default discount checkbox
+        document.getElementById('apply-default-discount').addEventListener('change', () => {
+            const productId = document.getElementById('sale-product').value;
+            const product = allProducts.find(p => p.id === productId);
+            if (product && document.getElementById('apply-default-discount').checked) {
+                document.getElementById('sale-discount').value = product.defaultDiscount || 0;
+            } else {
+                document.getElementById('sale-discount').value = 0;
+            }
+        });
+
+        // Bulk generate missing barcodes
+        async function generateMissingBarcodes() {
+            if (!authInitialized || !currentUser) return;
+            const missing = allProducts.filter(p => !p.barcode);
+            if (missing.length === 0) {
+                alert("All products already have barcodes.");
+                return;
+            }
+            const batch = writeBatch(db);
+            let updated = 0;
+            missing.forEach(p => {
+                const newBarcode = generateBarcode();
+                const docRef = doc(getUserCollection('inventory'), p.id);
+                batch.update(docRef, { barcode: newBarcode });
+                updated++;
+            });
+            try {
+                await batch.commit();
+                alert(`Generated barcodes for ${updated} products.`);
+                await loadProducts();
+            } catch (error) {
+                console.error("Error updating barcodes:", error);
+                alert("Failed to update barcodes.");
+            }
+        }
+
+        // Print all barcodes
+        function printAllBarcodes() {
+            if (!Array.isArray(allProducts) || allProducts.length === 0) {
+                alert("No products available to print.");
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            if (!printWindow) {
+                alert("Popup blocked!");
+                return;
+            }
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>All Product Barcodes</title>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .page-break { page-break-after: always; }
+                        .barcode-item { margin: 30px 0; text-align: center; }
+                        .barcode-label { font-weight: bold; }
+                        .barcode-sku { color: #555; font-size: 0.9rem; }
+                        .barcode-image { width: 300px; height: 50px; margin: 10px auto; }
+                    </style>
+                </head>
+                <body>
+                    <h2>All Product Barcodes</h2>
+            `);
+
+            allProducts.forEach((product, index) => {
+                const barcodeValue = product.barcode || "NOBARCODE";
+                printWindow.document.write(`
+                    <div class="barcode-item">
+                        <div class="barcode-label">${product.name}</div>
+                        <div class="barcode-sku">SKU: ${product.sku || 'N/A'}</div>
+                        <svg class="barcode-image" jsbarcode-value="${barcodeValue}" 
+                             jsbarcode-format="CODE128" 
+                             jsbarcode-displayvalue="true" 
+                             jsbarcode-textmargin="0" 
+                             jsbarcode-height="40">
+                        </svg>
+                    </div>
+                    ${index % 4 === 3 ? '<div class="page-break"></div>' : ''}
+                `);
+            });
+
+            printWindow.document.write(`
+                <script>
+                    window.addEventListener('load', () => {
+                        try {
+                            JsBarcode(".barcode-image", {
+                                format: "CODE128",
+                                displayValue: true,
+                                fontSize: 14,
+                                height: 40
+                            });
+                            setTimeout(() => window.print(), 750);
+                        } catch (e) {
+                            console.error("JsBarcode failed:", e);
+                        }
+                    });
+                <\/script>
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+        }
+
+        // Email low/out of stock as PDF
+        async function exportStockAlertPDF(lowStock, outStock) {
+            const element = document.createElement('div');
+            element.style.fontFamily = 'Arial, sans-serif';
+            let htmlContent = '';
+            if (lowStock.length > 0) {
+                htmlContent += `<h3>⚠️ Low Stock Items</h3><table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;"><tr style="background-color: #fff3cd;"><th>Product</th><th>Category</th><th>Current Stock</th><th>Min Stock</th><th>Price</th></tr>`;
+                lowStock.forEach(p => {
+                    htmlContent += `<tr><td>${p.name}</td><td>${p.category}</td><td>${p.quantity}</td><td>${p.minStock}</td><td>${formatCurrency(p.price)}</td></tr>`;
+                });
+                htmlContent += '</table>';
+            }
+            if (outStock.length > 0) {
+                htmlContent += `<h3 style="color: red;">🔴 Out of Stock Items</h3><table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;"><tr style="background-color: #f8d7da;"><th>Product</th><th>Category</th><th>Status</th><th>Min Stock</th><th>Price</th></tr>`;
+                outStock.forEach(p => {
+                    htmlContent += `<tr><td>${p.name}</td><td>${p.category}</td><td style="color:red;">OUT OF STOCK</td><td>${p.minStock}</td><td>${formatCurrency(p.price)}</td></tr>`;
+                });
+                htmlContent += '</table>';
+            }
+            element.innerHTML = `
+                <h2>Inventory Alert Report</h2>
+                <p><strong>Generated on:</strong> ${new Date().toLocaleString()}</p>
+                ${htmlContent}
+            `;
+            document.body.appendChild(element);
+
+            try {
+                const pdfBlob = await html2pdf()
+                    .from(element)
+                    .toPdf()
+                    .output('blob');
+
+                document.body.removeChild(element);
+                return pdfBlob;
+            } catch (error) {
+                document.body.removeChild(element);
+                console.error('PDF generation failed:', error);
+                throw error;
+            }
+        }
+
+        const tooltips = {
+            nominal: "Nominal APR is the annual interest rate without considering compounding. It's the stated rate before adjustments.",
+            ear: "Effective Annual Rate (EAR) accounts for compounding periods. It's the true annual cost of borrowing.",
+            amortization: "Amortization is the process of paying off debt over time through regular payments."
+        };
+        
+        document.querySelectorAll('.tooltip').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                el.setAttribute('data-tip-full', tooltips[el.getAttribute('data-tip')]);
+            });
+        });
+
+        let scenarioChart = null;
+        const savedScenarios = [];
+
+        function updateScenarioChart() {
+            if (scenarioChart) scenarioChart.destroy();
+
+            const ctx = document.getElementById('scenario-comparison-chart').getContext('2d');
+            scenarioChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: savedScenarios.map(s => s.name || `Scenario ${savedScenarios.indexOf(s)+1}`),
+                    datasets: [
+                        {
+                            label: 'Monthly Payment',
+                            data: savedScenarios.map(s => s.payment),
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                        },
+                        {
+                            label: 'Total Interest',
+                            data: savedScenarios.map(s => s.totalInterest),
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                        },
+                        {
+                            label: 'Break-Even Units',
+                            data: savedScenarios.map(s => s.breakEvenUnits),
+                            backgroundColor: 'rgba(255, 206, 86, 0.7)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Save current scenario
+        document.getElementById('save-scenario-btn').addEventListener('click', () => {
+            const name = document.getElementById('scenario-name').value || `Scenario ${savedScenarios.length + 1}`;
+            const loanAmount = parseFloat(document.getElementById('loan-amount').value);
+            const term = parseInt(document.getElementById('loan-term').value);
+            const payment = parseFloat(document.getElementById('monthly-payment').value);
+            const cogs = parseFloat(document.getElementById('monthly-cogs').value) || 0;
+            const units = parseInt(document.getElementById('expected-units').value) || 1;
+            const margin = parseFloat(document.getElementById('profit-margin').value) / 100 || 0;
+
+            const unitCost = cogs / units;
+            const breakEvenUnits = Math.ceil(payment / (unitCost * margin));
+            const totalInterest = (payment * term) - loanAmount;
+
+            const scenario = { name, loanAmount, term, payment, cogs, units, margin, breakEvenUnits, totalInterest };
+
+            savedScenarios.push(scenario);
+            updateScenarioSelect();
+            updateScenarioChart();
+            alert(`Scenario "${name}" saved!`);
+        });
+
+        // Update dropdown
+        function updateScenarioSelect() {
+            const select = document.getElementById('load-scenario-select');
+            select.innerHTML = '<option value="">Load a saved scenario...</option>';
+            savedScenarios.forEach((s, i) => {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = s.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Load selected scenario
+        document.getElementById('load-scenario-select').addEventListener('change', (e) => {
+            const index = e.target.value;
+            if (index === "") return;
+            
+            const scenario = savedScenarios[index];
+            document.getElementById('loan-amount').value = scenario.loanAmount;
+            document.getElementById('loan-term').value = scenario.term;
+            document.getElementById('monthly-payment').value = scenario.payment;
+            document.getElementById('monthly-cogs').value = scenario.cogs;
+            document.getElementById('expected-units').value = scenario.units;
+            document.getElementById('profit-margin').value = scenario.margin * 100;
+            document.getElementById('scenario-name').value = scenario.name;
+
+            calculateLoan();
+            calculatePricing();
+        });
+
+        // Delete scenario
+        document.getElementById('delete-scenario-btn').addEventListener('click', () => {
+            const index = document.getElementById('load-scenario-select').value;
+            if (index === "") {
+                alert("Please select a scenario to delete");
+                return;
+            }
+            
+            const name = savedScenarios[index].name;
+            if (confirm(`Delete scenario "${name}"?`)) {
+                savedScenarios.splice(index, 1);
+                updateScenarioSelect();
+                updateScenarioChart();
+            }
+        });
+
+        document.getElementById('email-low-stock').addEventListener('click', async () => {
+            const lowStock = allProducts.filter(p => p.quantity <= p.minStock && p.quantity > 0);
+            const outStock = allProducts.filter(p => p.quantity === 0);
+
+            if (lowStock.length === 0 && outStock.length === 0) {
+                alert('No low or out-of-stock items to report.');
+                return;
+            }
+
+            try {
+                const pdfBlob = await exportStockAlertPDF(lowStock, outStock);
+                const email = prompt('Enter recipient email:', currentUser.email);
+                if (!email) return;
+
+                const settingsSnap = await getDoc(settingsRef());
+                const businessName = settingsSnap.exists() ? settingsSnap.data().name || 'Your Business' : 'Your Business';
+
+                const templateParams = {
+                    to_email: email,
+                    from_name: businessName,
+                    subject: 'Inventory Alert Report',
+                    message: `<p>Please find the attached inventory alert report.</p>`,
+                    reply_to: currentUser.email,
+                    attachment: {
+                         pdfBlob,
+                        filename: 'inventory-alert.pdf'
+                    }
+                };
+
+                await emailjs.send('service_x4hgyq2', 'template_xf12d5d', templateParams);
+                alert('✅ Report sent successfully with PDF!');
+            } catch (error) {
+                console.error('EmailJS error:', error);
+                alert('❌ Failed to send email with attachment.');
+            }
+        });
+
+        document.getElementById('email-out-stock').addEventListener('click', async () => {
+            const outStock = allProducts.filter(p => p.quantity === 0);
+            if (outStock.length === 0) {
+                alert('No out-of-stock items to report.');
+                return;
+            }
+
+            try {
+                const pdfBlob = await exportStockAlertPDF([], outStock);
+                const email = prompt('Enter recipient email:', currentUser.email);
+                if (!email) return;
+
+                const settingsSnap = await getDoc(settingsRef());
+                const businessName = settingsSnap.exists() ? settingsSnap.data().name || 'Your Business' : 'Your Business';
+
+                const templateParams = {
+                    to_email: email,
+                    from_name: businessName,
+                    subject: 'Out of Stock Alert',
+                    message: `<p>Please find the attached out-of-stock report.</p>`,
+                    reply_to: currentUser.email,
+                    attachment: {
+                         pdfBlob,
+                        filename: 'out-of-stock-report.pdf'
+                    }
+                };
+
+                await emailjs.send('service_x4hgyq2', 'template_xf12d5d', templateParams);
+                alert('✅ Out-of-stock report sent!');
+            } catch (error) {
+                console.error('EmailJS error:', error);
+                alert('❌ Failed to send email.');
+            }
+        });
+
+        // Export sales as PDF
+        document.getElementById('export-sales-pdf').addEventListener('click', async () => {
+            if (allSales.length === 0) {
+                alert('No sales data to export.');
+                return;
+            }
+
+            const element = document.createElement('div');
+            element.style.fontFamily = 'Arial, sans-serif';
+            let tableRows = '';
+            allSales.forEach(sale => {
+                const subtotal = sale.quantity * sale.price;
+                const discounted = subtotal * (1 - sale.discount / 100);
+                const total = discounted * (1 + sale.tax / 100);
+                tableRows += `
+                    <tr>
+                        <td>${sale.date}</td>
+                        <td>${sale.customer}</td>
+                        <td>${sale.product}</td>
+                        <td>${sale.quantity}</td>
+                        <td>${formatCurrency(sale.price)}</td>
+                        <td>${sale.discount}%</td>
+                        <td>${sale.tax}%</td>
+                        <td>${formatCurrency(total)}</td>
+                    </tr>
+                `;
+            });
+
+            element.innerHTML = `
+                <h2>Sales Report</h2>
+                <p><strong>Generated on:</strong> ${new Date().toLocaleString()}</p>
+                <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Discount (%)</th>
+                            <th>Tax (%)</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+
+            document.body.appendChild(element);
+            await html2pdf().from(element).save('sales-report.pdf');
+            document.body.removeChild(element);
+        });
+
+        // Export inventory as PDF
+        document.getElementById('export-inventory-pdf').addEventListener('click', async () => {
+            if (!Array.isArray(allProducts) || allProducts.length === 0) {
+                alert('No inventory data to export.');
+                return;
+            }
+
+            const element = document.createElement('div');
+            element.style.fontFamily = 'Arial, sans-serif';
+            let tableRows = '';
+            allProducts.forEach(product => {
+                const value = product.quantity * product.cost;
+                const profitMargin = product.cost > 0 ? ((product.price - product.cost) / product.cost * 100).toFixed(2) : '0';
+                tableRows += `
+                    <tr>
+                        <td>${product.name}</td>
+                        <td>${product.category}</td>
+                        <td>${formatCurrency(product.cost)}</td>
+                        <td>${formatCurrency(product.price)}</td>
+                        <td>${product.quantity}</td>
+                        <td>${product.minStock}</td>
+                        <td>${formatCurrency(value)}</td>
+                        <td>${profitMargin}%</td>
+                    </tr>
+                `;
+            });
+
+            element.innerHTML = `
+                <h2>Inventory Report</h2>
+                <p><strong>Generated on:</strong> ${new Date().toLocaleString()}</p>
+                <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Cost Price</th>
+                            <th>Selling Price</th>
+                            <th>Stock</th>
+                            <th>Min Stock</th>
+                            <th>Value</th>
+                            <th>Profit Margin (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+
+            document.body.appendChild(element);
+            await html2pdf().from(element).save('inventory-report.pdf');
+            document.body.removeChild(element);
+        });
+
+        // Email sales report
+        document.getElementById('email-sales-report').addEventListener('click', async () => {
+            if (allSales.length === 0) {
+                alert('No sales to report.');
+                return;
+            }
+
+            let tableRows = '';
+            allSales.forEach(sale => {
+                const subtotal = sale.quantity * sale.price;
+                const discounted = subtotal * (1 - sale.discount / 100);
+                const total = discounted * (1 + sale.tax / 100);
+                tableRows += `
+                    <tr>
+                        <td>${sale.date}</td>
+                        <td>${sale.customer}</td>
+                        <td>${sale.product}</td>
+                        <td>${sale.quantity}</td>
+                        <td>${formatCurrency(sale.price)}</td>
+                        <td>${sale.discount}%</td>
+                        <td>${sale.tax}%</td>
+                        <td>${formatCurrency(total)}</td>
+                    </tr>
+                `;
+            });
+
+            const html = `
+                <h2>Sales Report</h2>
+                <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Discount</th>
+                            <th>Tax</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+
+            try {
+                const email = prompt('Enter recipient email:', currentUser.email);
+                if (!email) return;
+
+                const settingsSnap = await getDoc(settingsRef());
+                const businessName = settingsSnap.exists() ? settingsSnap.data().name || 'Your Business' : 'Your Business';
+
+                const templateParams = {
+                    to_email: email,
+                    from_name: businessName,
+                    subject: 'Monthly Sales Report',
+                    message: html,
+                    reply_to: currentUser.email
+                };
+
+                await emailjs.send('service_x4hgyq2', 'template_xf12d5d', templateParams);
+                alert('✅ Sales report sent!');
+            } catch (error) {
+                console.error('EmailJS error:', error);
+                alert('❌ Failed to send report.');
+            }
+        });
+
+        // CRUD Operations
+        document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!authInitialized || !currentUser) return;
+            try {
+                const product = {
+                    name: document.getElementById('product-name').value,
+                    sku: document.getElementById('product-sku').value,
+                    barcode: document.getElementById('product-barcode').value,
+                    category: document.getElementById('product-category').value,
+                    cost: parseFloat(document.getElementById('product-cost').value),
+                    price: parseFloat(document.getElementById('product-price').value),
+                    quantity: parseInt(document.getElementById('product-quantity').value),
+                    minStock: parseInt(document.getElementById('product-min-stock').value),
+                    defaultDiscount: parseFloat(document.getElementById('product-default-discount').value) || 0,
+                    priceHistory: [{
+                        date: new Date().toISOString(),
+                        cost: parseFloat(document.getElementById('product-cost').value),
+                        price: parseFloat(document.getElementById('product-price').value)
+                    }]
+                };
+                await addDoc(getUserCollection('inventory'), product);
+                e.target.reset();
+                closeModal('add-product-modal');
+                await loadProducts();
+            } catch (error) {
+                console.error('Error adding product:', error);
+                alert('Failed to add product.');
+            }
+        });
+
+        document.getElementById('edit-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!authInitialized || !currentUser) return;
+            try {
+                const id = document.getElementById('edit-product-id').value;
+                const docRef = doc(getUserCollection('inventory'), id);
+                const docSnap = await getDoc(docRef);
+                const product = docSnap.data();
+                const updateData = {
+                    name: document.getElementById('edit-product-name').value,
+                    sku: document.getElementById('edit-product-sku').value,
+                    barcode: document.getElementById('edit-product-barcode').value,
+                    category: document.getElementById('edit-product-category').value,
+                    cost: parseFloat(document.getElementById('edit-product-cost').value),
+                    price: parseFloat(document.getElementById('edit-product-price').value),
+                    quantity: parseInt(document.getElementById('edit-product-quantity').value),
+                    minStock: parseInt(document.getElementById('edit-product-min-stock').value),
+                    defaultDiscount: parseFloat(document.getElementById('edit-product-default-discount').value) || 0,
+                    priceHistory: [
+                        ...(product.priceHistory || []),
+                        {
+                            date: new Date().toISOString(),
+                            cost: parseFloat(document.getElementById('edit-product-cost').value),
+                            price: parseFloat(document.getElementById('edit-product-price').value)
+                        }
+                    ]
+                };
+                await updateDoc(docRef, updateData);
+                closeModal('edit-product-modal');
+                await loadProducts();
+            } catch (error) {
+                console.error('Error editing product:', error);
+                alert('Failed to edit product.');
+            }
+        });
+
+        async function deleteProduct(id) {
+            if (!authInitialized || !currentUser) return;
+            if (confirm('Delete this product?')) {
+                try {
+                    await deleteDoc(doc(getUserCollection('inventory'), id));
+                    await loadProducts();
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    alert('Failed to delete product.');
+                }
+            }
+        }
+
+        document.getElementById('add-sale-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!authInitialized || !currentUser) return;
+            try {
+                const productId = document.getElementById('sale-product').value;
+                const product = allProducts.find(p => p.id === productId);
+                if (!product) {
+                    alert('Please select a valid product.');
+                    return;
+                }
+                const quantity = parseInt(document.getElementById('sale-quantity').value);
+                if (quantity > product.quantity) {
+                    alert('Not enough stock available.');
+                    return;
+                }
+                const unitPrice = parseFloat(document.getElementById('sale-unit-price').value);
+                const discount = parseFloat(document.getElementById('sale-discount').value) || 0;
+                const tax = parseFloat(document.getElementById('sale-tax').value);
+                const subtotal = quantity * unitPrice;
+                const discounted = subtotal * (1 - discount / 100);
+                const total = discounted * (1 + tax / 100);
+                const sale = {
+                    date: document.getElementById('sale-date').value,
+                    customer: document.getElementById('sale-customer').value,
+                    productId: productId,
+                    product: product.name,
+                    quantity: quantity,
+                    price: unitPrice,
+                    discount: discount,
+                    tax: tax,
+                    timestamp: new Date().toISOString()
+                };
+                await addDoc(getUserCollection('sales'), sale);
+                await updateDoc(doc(getUserCollection('inventory'), productId), {
+                    quantity: product.quantity - quantity
+                });
+                e.target.reset();
+                closeModal('add-sale-modal');
+                await loadAllData();
+                // ✅ Reload products after sale
+                await loadProducts();
+                printReceipt(sale, product);
+            } catch (error) {
+                console.error('Error adding sale:', error);
+                alert('Failed to record sale.');
+            }
+        });
+
+        function printReceipt(sale, product) {
+            const total = sale.quantity * sale.price * (1 - sale.discount / 100) * (1 + sale.tax / 100);
+            const receiptHTML = `<html><head><title>Receipt</title><style>body { font-family: monospace; width: 3.5in; padding: 0.25in; margin: 0; }.center { text-align: center; }.bold { font-weight: bold; }table { width: 100%; border-collapse: collapse; margin: 0.25rem 0; }th, td { padding: 0.1rem 0; }</style></head><body onload="window.print()"><div class="center"><h2>RECEIPT</h2><p>${new Date().toLocaleString()}</p><p><strong>Customer:</strong> ${sale.customer}</p></div><table><tr><td>${product.name}</td><td style="text-align: right;">×${sale.quantity}</td></tr><tr><td>Unit Price:</td><td style="text-align: right;">${formatCurrency(sale.price)}</td></tr>${sale.discount > 0 ? `<tr><td>Discount:</td><td style="text-align: right;">-${sale.discount}%</td></tr>` : ''}<tr><td>Tax:</td><td style="text-align: right;">+${sale.tax}%</td></tr><tr><td colspan="2"><hr></td></tr><tr class="bold"><td>Total:</td><td style="text-align: right;">${formatCurrency(total)}</td></tr></table><p class="center">Thank you for your purchase!</p></body></html>`;
+            const win = window.open('', '', 'width=350,height=400');
+            win.document.write(receiptHTML);
+            win.document.close();
+        }
+
+        async function deleteSale(id) {
+            if (!authInitialized || !currentUser) return;
+            if (confirm('Delete this sale?')) {
+                try {
+                    const sale = allSales.find(s => s.id === id);
+                    const product = allProducts.find(p => p.name === sale.product);
+                    await updateDoc(doc(getUserCollection('inventory'), product.id), { quantity: product.quantity + sale.quantity });
+                    await deleteDoc(doc(getUserCollection('sales'), id));
+                    await loadAllData();
+                } catch (error) {
+                    console.error('Error deleting sale:', error);
+                    alert('Failed to delete sale.');
+                }
+            }
+        }
+
+        document.getElementById('add-expense-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!authInitialized || !currentUser) return;
+            try {
+                const expense = {
+                    date: document.getElementById('expense-date').value,
+                    category: document.getElementById('expense-category').value,
+                    description: document.getElementById('expense-description').value,
+                    amount: parseFloat(document.getElementById('expense-amount').value),
+                    timestamp: new Date().toISOString()
+                };
+                await addDoc(getUserCollection('expenses'), expense);
+                e.target.reset();
+                closeModal('add-expense-modal');
+                await loadExpenses();
+            } catch (error) {
+                console.error('Error adding expense:', error);
+                alert('Failed to add expense.');
+            }
+        });
+
+        async function deleteExpense(id) {
+            if (!authInitialized || !currentUser) return;
+            if (confirm('Delete this expense?')) {
+                try {
+                    await deleteDoc(doc(getUserCollection('expenses'), id));
+                    await loadExpenses();
+                } catch (error) {
+                    console.error('Error deleting expense:', error);
+                    alert('Failed to delete expense.');
+                }
+            }
+        }
+
+        // Open modals
+        function openAddProductModal() {
+            document.getElementById('add-product-modal').style.display = 'block';
+        }
+
+        function openAddSaleModal() {
+            document.getElementById('add-sale-modal').style.display = 'block';
+            updateSaleProductOptions();
+            setupSaleProductSearch();
+        }
+
+        function openAddExpenseModal() {
+            document.getElementById('add-expense-modal').style.display = 'block';
+        }
+
+        function openEditProductModal(id) {
+            const product = allProducts.find(p => p.id === id);
+            document.getElementById('edit-product-id').value = id;
+            document.getElementById('edit-product-name').value = product.name;
+            document.getElementById('edit-product-sku').value = product.sku;
+            document.getElementById('edit-product-barcode').value = product.barcode || '';
+            document.getElementById('edit-product-category').value = product.category;
+            document.getElementById('edit-product-cost').value = product.cost;
+            document.getElementById('edit-product-price').value = product.price;
+            document.getElementById('edit-product-quantity').value = product.quantity;
+            document.getElementById('edit-product-min-stock').value = product.minStock;
+            document.getElementById('edit-product-default-discount').value = product.defaultDiscount || 0;
+            document.getElementById('edit-product-modal').style.display = 'block';
+        }
+
+        function showProductDetails(id) {
+            const product = allProducts.find(p => p.id === id);
+            document.getElementById('modal-product-name').textContent = `Product Name: ${product.name}`;
+            document.getElementById('modal-sku').textContent = `SKU: ${product.sku}`;
+            document.getElementById('modal-barcode').textContent = `Barcode: ${product.barcode || 'N/A'}`;
+            document.getElementById('modal-category').textContent = `Category: ${product.category}`;
+            document.getElementById('modal-cost-price').textContent = `Cost Price: ${formatCurrency(product.cost)}`;
+            document.getElementById('modal-selling-price').textContent = `Selling Price: ${formatCurrency(product.price)}`;
+            document.getElementById('modal-stock').textContent = `Stock: ${product.quantity}`;
+            document.getElementById('modal-min-stock').textContent = `Min Stock: ${product.minStock}`;
+            const salesHistory = allSales.filter(s => s.productId === id);
+            const salesTbody = document.getElementById('modal-sales-history').querySelector('tbody');
+            salesTbody.innerHTML = '';
+            salesHistory.forEach(sale => {
+                const subtotal = sale.quantity * sale.price;
+                const discounted = subtotal * (1 - sale.discount / 100);
+                const total = discounted * (1 + sale.tax / 100);
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${sale.date}</td><td>${sale.customer}</td><td>${sale.quantity}</td><td>${formatCurrency(total)}</td>`;
+                salesTbody.appendChild(row);
+            });
+            const priceTbody = document.getElementById('modal-price-history').querySelector('tbody');
+            priceTbody.innerHTML = '';
+            (product.priceHistory || []).forEach(hist => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${hist.date.split('T')[0]}</td><td>${formatCurrency(hist.cost)}</td><td>${formatCurrency(hist.price)}</td>`;
+                priceTbody.appendChild(row);
+            });
+            document.getElementById('product-modal').style.display = 'block';
+        }
+
+        // Export and clear data
+        document.getElementById('export-sales-btn').addEventListener('click', () => {
+            const data = [['Date', 'Customer', 'Product', 'Qty', 'Unit Price', 'Discount (%)', 'Tax (%)', 'Total']];
+            allSales.forEach(sale => {
+                const subtotal = sale.quantity * sale.price;
+                const discounted = subtotal * (1 - sale.discount / 100);
+                const total = discounted * (1 + sale.tax / 100);
+                data.push([sale.date, sale.customer, sale.product, sale.quantity, sale.price, sale.discount, sale.tax, total]);
+            });
+            const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'sales.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Report Section Tabs
+        document.getElementById('balance-sheet-tab').addEventListener('click', () => {
+            document.getElementById('financial-summary-content').style.display = 'none';
+            document.getElementById('balance-sheet-content').style.display = 'block';
+            document.getElementById('cash-flow-content').style.display = 'none';
+            document.querySelectorAll('#financial-summary-tab, #balance-sheet-tab, #cash-flow-tab').forEach(btn => {
+                btn.style.background = '#f1f3f5';
+                btn.style.color = '#333';
+            });
+            document.getElementById('balance-sheet-tab').style.background = '#007bff';
+            document.getElementById('balance-sheet-tab').style.color = 'white';
+            renderBalanceSheet();
+        });
+
+        document.getElementById('cash-flow-tab').addEventListener('click', () => {
+            document.getElementById('financial-summary-content').style.display = 'none';
+            document.getElementById('balance-sheet-content').style.display = 'none';
+            document.getElementById('cash-flow-content').style.display = 'block';
+            document.querySelectorAll('#financial-summary-tab, #balance-sheet-tab, #cash-flow-tab').forEach(btn => {
+                btn.style.background = '#f1f3f5';
+                btn.style.color = '#333';
+            });
+            document.getElementById('cash-flow-tab').style.background = '#007bff';
+            document.getElementById('cash-flow-tab').style.color = 'white';
+            renderCashFlow();
+        });
+
+        document.getElementById('financial-summary-tab').addEventListener('click', () => {
+            document.getElementById('financial-summary-content').style.display = 'block';
+            document.getElementById('balance-sheet-content').style.display = 'none';
+            document.getElementById('cash-flow-content').style.display = 'none';
+            document.querySelectorAll('#financial-summary-tab, #balance-sheet-tab, #cash-flow-tab').forEach(btn => {
+                btn.style.background = '#f1f3f5';
+                btn.style.color = '#333';
+            });
+            document.getElementById('financial-summary-tab').style.background = '#007bff';
+            document.getElementById('financial-summary-tab').style.color = 'white';
+        });
+
+        document.getElementById('export-inventory-btn').addEventListener('click', () => {
+            const data = [['Product Name', 'Category', 'Cost Price', 'Selling Price', 'Stock', 'Min Stock', 'Value', 'Profit Margin (%)']];
+            allProducts.forEach(product => {
+                const value = product.quantity * product.cost;
+                const profitMargin = product.cost > 0 ? ((product.price - product.cost) / product.cost * 100).toFixed(2) : '0';
+                data.push([product.name, product.category, product.cost, product.price, product.quantity, product.minStock, value, profitMargin]);
+            });
+            const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'inventory.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        document.getElementById('export-expenses-btn').addEventListener('click', () => {
+            const data = [['Date', 'Category', 'Description', 'Amount']];
+            allExpenses.forEach(exp => {
+                data.push([exp.date, exp.category, exp.description, exp.amount]);
+            });
+            const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'expenses.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        document.getElementById('export-all-data-btn').addEventListener('click', () => {
+            alert('Exporting all data as separate CSVs');
+            document.getElementById('export-sales-btn').click();
+            document.getElementById('export-inventory-btn').click();
+            document.getElementById('export-expenses-btn').click();
+        });
+
+        document.getElementById('clear-all-data-btn').addEventListener('click', () => {
+            if (confirm('Clear all data? This is irreversible!')) {
+                const collections = ['sales', 'expenses', 'inventory'];
+                collections.forEach(async (col) => {
+                    const snapshot = await getDocs(getUserCollection(col));
+                    const batch = writeBatch(db);
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                });
+                loadAllData();
+            }
+        });
+
+        document.getElementById('clear-all-data-btn-2').addEventListener('click', () => {
+            document.getElementById('clear-all-data-btn').click();
+        });
+
+        document.getElementById('load-sample-data-btn').addEventListener('click', async () => {
+            if (confirm('Load sample data? This will add demo entries.')) {
+                try {
+                    const products = [
+                        { name: 'Laptop', sku: 'LAP001', barcode: '123456789', category: 'Electronics', cost: 800, price: 1200, quantity: 10, minStock: 5, defaultDiscount: 10, priceHistory: [{ date: new Date().toISOString(), cost: 800, price: 1200 }] },
+                        { name: 'T-Shirt', sku: 'TSH001', barcode: '987654321', category: 'Clothing', cost: 10, price: 20, quantity: 50, minStock: 10, defaultDiscount: 5, priceHistory: [{ date: new Date().toISOString(), cost: 10, price: 20 }] }
+                    ];
+                    const sales = [
+                        { date: '2024-01-15', customer: 'John Doe', productName: 'Laptop', quantity: 1, unitPrice: 1200, discount: 0, tax: 8.5, timestamp: new Date().toISOString() }
+                    ];
+                    const expenses = [
+                        { date: '2024-01-10', category: 'Rent', description: 'Office Rent', amount: 1200, timestamp: new Date().toISOString() },
+                        { date: '2024-01-12', category: 'Utilities', description: 'Electricity Bill', amount: 150, timestamp: new Date().toISOString() }
+                    ];
+                    for (const prod of products) {
+                        const docRef = await addDoc(getUserCollection('inventory'), prod);
+                        sales[0].productId = docRef.id;
+                    }
+                    for (const sale of sales) {
+                        await addDoc(getUserCollection('sales'), sale);
+                        await updateDoc(doc(getUserCollection('inventory'), sale.productId), { quantity: 9 });
+                    }
+                    for (const exp of expenses) {
+                        await addDoc(getUserCollection('expenses'), exp);
+                    }
+                    await loadAllData();
+                    alert('Sample data loaded successfully.');
+                } catch (error) {
+                    console.error('Error loading sample ', error);
+                    alert('Failed to load sample data.');
+                }
+            }
+        });
+
+        document.getElementById('load-sample-data-btn-2').addEventListener('click', () => {
+            document.getElementById('load-sample-data-btn').click();
+        });
+
+        // Setup listeners
+        function setupListeners() {
+            if (!authInitialized || !currentUser) return;
+            onSnapshot(getUserCollection('inventory'), () => loadProducts());
+            onSnapshot(getUserCollection('sales'), () => { loadSales(); loadRecentActivity(); });
+            onSnapshot(getUserCollection('expenses'), () => { loadExpenses(); loadRecentActivity(); });
+            onSnapshot(getUserCustomers(), () => loadCustomers());
+            onSnapshot(getUserPromos(), () => loadPromos());
+
+            // ✅ Add event listeners
+            document.getElementById('sales-date-filter').addEventListener('change', () => {
+                filterAndRenderSales();
+            });
+            
+            document.getElementById('sales-customer-search').addEventListener('input', () => {
+                filterAndRenderSales();
+            });
+            
+            document.getElementById('sales-product-search-table').addEventListener('input', () => {
+                filterAndRenderSales();
+            });
+
+            // Calculate loan and update amortization
+            document.getElementById('loan-scenario-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                calculateLoan();
+                updatePricingTool();
+            });
+
+            // Recalculate pricing
+            document.getElementById('pricing-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                calculatePricing();
+            });
+        }
+
+        // IndexedDB for Offline Mode
+        const DB_NAME = 'BookkeepingOffline';
+        const DB_VERSION = 1;
+        let indexedDBInstance = null;
+
+        async function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    indexedDBInstance = request.result;
+                    resolve(indexedDBInstance);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    ['inventory', 'sales', 'expenses', 'customers', 'settings'].forEach(store => {
+                        if (!db.objectStoreNames.contains(store)) {
+                            db.createObjectStore(store, { keyPath: 'id' });
+                        }
+                    });
+                };
+            });
+        }
+
+        async function saveToLocal(storeName, data) {
+            if (!indexedDBInstance) await openDatabase();
+            const tx = indexedDBInstance.transaction(storeName, 'readwrite');
+            tx.objectStore(storeName).put({ ...data, offline: true, syncNeeded: true });
+            return tx.complete;
+        }
+
+        async function loadFromLocal(storeName) {
+            if (!indexedDBInstance) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = indexedDBInstance.transaction(storeName, 'readonly');
+                const request = tx.objectStore(storeName).getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Sync when online
+        window.addEventListener('online', syncOfflineData);
+
+        async function syncOfflineData() {
+            if (!navigator.onLine || !authInitialized || !currentUser) return;
+
+            const stores = ['inventory', 'sales', 'expenses', 'customers'];
+            for (const store of stores) {
+                const localItems = await loadFromLocal(store);
+                for (const item of localItems) {
+                    if (item.syncNeeded) {
+                        try {
+                            const collectionRef = getUserCollection(store);
+                            await addDoc(collectionRef, { ...item, syncNeeded: false });
+                            
+                            // Remove from local after sync
+                            const tx = indexedDBInstance.transaction(store, 'readwrite');
+                            tx.objectStore(store).delete(item.id);
+                        } catch (error) {
+                            console.warn(`Failed to sync ${store}/${item.id}`, error);
+                        }
+                    }
+                }
+            }
+            alert('Offline data synced!');
+            await loadAllData();
+        }
+
+        // Connection status
+        function updateConnectionStatus() {
+            const status = document.getElementById('connection-status');
+            if (navigator.onLine) {
+                status.textContent = 'Connected to Firebase';
+                status.style.color = '#28a745';
+            } else {
+                status.textContent = 'Offline Mode - Changes will sync when online';
+                status.style.color = '#ffc107';
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Load all data
+        async function loadAllData() {
+            if (!authInitialized || !currentUser) return;
+            try {
+                await Promise.all([
+                    //loadSettings(),
+                    loadProducts(),
+                    loadSales(),
+                    loadExpenses(),
+                    loadRecentActivity(),
+                    loadCustomers(),
+                    loadPromos()
+                ]);
+                renderDashboard();
+            } catch (error) {
+                console.error('Error loading all ', error);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('add-product-btn').addEventListener('click', openAddProductModal);
+        document.getElementById('add-sale-btn').addEventListener('click', openAddSaleModal);
+        document.getElementById('add-expense-btn').addEventListener('click', openAddExpenseModal);
+
+        document.getElementById('generate-barcode-btn').addEventListener('click', () => {
+            document.getElementById('product-barcode').value = generateBarcode();
+        });
+        document.getElementById('generate-edit-barcode-btn').addEventListener('click', () => {
+            document.getElementById('edit-product-barcode').value = generateBarcode();
+        });
+        document.getElementById('apply-default-discount').addEventListener('change', () => {
+            const productId = document.getElementById('sale-product').value;
+            const product = allProducts.find(p => p.id === productId);
+            if (product && document.getElementById('apply-default-discount').checked) {
+                document.getElementById('sale-discount').value = product.defaultDiscount || 0;
+            } else {
+                document.getElementById('sale-discount').value = 0;
+            }
+        });
+        document.getElementById('generate-missing-barcodes-btn').addEventListener('click', generateMissingBarcodes);
+        document.getElementById('print-all-barcodes-btn').addEventListener('click', printAllBarcodes);
+
+        /*function calculatePricing() {
+            const cogs = parseFloat(document.getElementById('monthly-cogs').value) || 0;
+            const units = parseInt(document.getElementById('expected-units').value) || 1;
+            const margin = parseFloat(document.getElementById('profit-margin').value) / 100 || 0;
+            const loanPayment = parseFloat(document.getElementById('pricing-form').dataset.loanPayment) || 0;
+        
+            const unitCost = cogs / units;
+            const loanPerUnit = loanPayment / units;
+            const adjustedCost = unitCost + loanPerUnit;
+            const sellingPrice = adjustedCost * (1 + margin);
+            const breakEvenUnits = Math.ceil(loanPayment / (unitCost * margin));
+        
+            document.getElementById('unit-cost').textContent = formatCurrency(unitCost);
+            document.getElementById('loan-per-unit').textContent = formatCurrency(loanPerUnit);
+            document.getElementById('adjusted-cost').textContent = formatCurrency(adjustedCost);
+            document.getElementById('selling-price').textContent = formatCurrency(sellingPrice);
+            document.getElementById('break-even-units').textContent = breakEvenUnits;
+        }*/
+
+        // Calculate pricing based on loan burden
+        function calculatePricing() {
+            const cogs = parseFloat(document.getElementById('monthly-cogs').value) || 0;
+            const units = parseInt(document.getElementById('expected-units').value) || 1;
+            const margin = parseFloat(document.getElementById('profit-margin').value) / 100 || 0;
+            const payment = parseFloat(document.getElementById('monthly-payment').value) || 0;
+
+            const unitCost = cogs / units;
+            const loanPerUnit = payment / units;
+            const adjustedCost = unitCost + loanPerUnit;
+            const sellingPrice = adjustedCost * (1 + margin);
+            const breakEvenUnits = Math.ceil(payment / (unitCost * margin));
+
+            document.getElementById('unit-cost').textContent = formatCurrency(unitCost);
+            document.getElementById('loan-per-unit').textContent = formatCurrency(loanPerUnit);
+            document.getElementById('adjusted-cost').textContent = formatCurrency(adjustedCost);
+            document.getElementById('selling-price').textContent = formatCurrency(sellingPrice);
+            document.getElementById('break-even-units').textContent = breakEvenUnits;
+        }
+
+        function updatePricingTool() {
+            const payment = parseFloat(document.getElementById('monthly-payment').value) || 0;
+            document.getElementById('pricing-form').dataset.loanPayment = payment;
+            // Recalculate pricing if form is filled
+            if (document.getElementById('monthly-cogs').value) {
+                calculatePricing();
+            }
+        }
+
+        document.getElementById('pricing-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            calculatePricing();
+        });
+
+        document.getElementById('download-pricing-sheet').addEventListener('click', () => {
+            const cogs = parseFloat(document.getElementById('monthly-cogs').value) || 0;
+            const units = parseInt(document.getElementById('expected-units').value) || 1;
+            const margin = parseFloat(document.getElementById('profit-margin').value) / 100 || 0;
+            const loanPayment = 0;
+
+            const unitCost = cogs / units;
+            const loanPerUnit = loanPayment / units;
+            const adjustedCost = unitCost + loanPerUnit;
+            const sellingPrice = adjustedCost * (1 + margin);
+            const breakEvenUnits = Math.ceil(loanPayment / (unitCost * margin));
+
+            const data = [
+                ['Metric', 'Value'],
+                ['Monthly COGS', cogs],
+                ['Expected Units Sold', units],
+                ['Desired Profit Margin (%)', margin * 100],
+                ['Unit Cost', unitCost],
+                ['Loan Burden per Unit', loanPerUnit],
+                ['Adjusted Cost', adjustedCost],
+                ['Selling Price', sellingPrice],
+                ['Break-Even Units', breakEvenUnits]
+            ];
+
+            const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'pricing-sheet.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Calculate missing loan variable
+        /*function calculateLoan() {
+            const loanAmount = parseFloat(document.getElementById('loan-amount').value);
+            const term = parseInt(document.getElementById('loan-term').value);
+            const payment = parseFloat(document.getElementById('monthly-payment').value);
+
+            let rate, calculatedPayment, calculatedTerm, totalInterest;
+
+            if (!payment) {
+                // Estimate rate and calculate payment
+                rate = 0.02632; // Starting guess
+                calculatedPayment = loanAmount * rate / (1 - Math.pow(1 + rate, -term));
+                totalInterest = (calculatedPayment * term) - loanAmount;
+                document.getElementById('monthly-payment').value = calculatedPayment.toFixed(2);
+            } else if (!term) {
+                // Estimate term
+                rate = 0.02632;
+                const n = Math.log(payment / (payment - loanAmount * rate)) / Math.log(1 + rate);
+                calculatedTerm = Math.ceil(n);
+                totalInterest = (payment * calculatedTerm) - loanAmount;
+                document.getElementById('loan-term').value = calculatedTerm;
+            } else {
+                // Calculate implied rate (approximate)
+                rate = estimateRate(loanAmount, payment, term);
+                totalInterest = (payment * term) - loanAmount;
+            }
+
+            const apr = rate * 12 * 100;
+            const ear = Math.pow(1 + rate, 12) - 1;
+
+            document.getElementById('loan-results').innerHTML = `
+                <tr><td>Monthly Interest Rate</td><td>${(rate * 100).toFixed(3)}%</td></tr>
+                <tr><td>Nominal APR</td><td>${apr.toFixed(2)}% per year</td></tr>
+                <tr><td>Effective Annual Rate (EAR)</td><td>${(ear * 100).toFixed(2)}% per year</td></tr>
+                <tr><td>Total Paid</td><td>${formatCurrency(payment * term)}</td></tr>
+                <tr><td>Total Interest</td><td>${formatCurrency(totalInterest)}</td></tr>
+            `;
+
+            // Generate amortization with new values
+            generateAmortization(loanAmount, payment, term, rate);
+        }*/
+
+        // Calculate loan and update results
+        function calculateLoan() {
+            const loanAmount = parseFloat(document.getElementById('loan-amount').value);
+            const term = parseInt(document.getElementById('loan-term').value);
+            const payment = parseFloat(document.getElementById('monthly-payment').value);
+
+            if (!loanAmount || !term || (!payment && !document.getElementById('monthly-payment').value)) {
+                alert('Please enter valid loan details');
+                return;
+            }
+
+            let rate, calculatedPayment, calculatedTerm, totalInterest;
+
+            if (!payment) {
+                rate = 0.02632;
+                calculatedPayment = loanAmount * rate / (1 - Math.pow(1 + rate, -term));
+                totalInterest = (calculatedPayment * term) - loanAmount;
+                document.getElementById('monthly-payment').value = calculatedPayment.toFixed(2);
+            } else if (!term) {
+                rate = 0.02632;
+                const n = Math.log(payment / (payment - loanAmount * rate)) / Math.log(1 + rate);
+                calculatedTerm = Math.ceil(n);
+                totalInterest = (payment * calculatedTerm) - loanAmount;
+                document.getElementById('loan-term').value = calculatedTerm;
+            } else {
+                rate = estimateRate(loanAmount, payment, term);
+                totalInterest = (payment * term) - loanAmount;
+            }
+
+            const apr = rate * 12 * 100;
+            const ear = Math.pow(1 + rate, 12) - 1;
+
+            document.getElementById('monthly-rate').textContent = `${(rate * 100).toFixed(3)}%`;
+            document.getElementById('nominal-apr').textContent = `${apr.toFixed(2)}% per year`;
+            document.getElementById('ear').textContent = `${(ear * 100).toFixed(2)}% per year`;
+            document.getElementById('total-paid').textContent = formatCurrency(payment * term);
+            document.getElementById('total-interest').textContent = formatCurrency(totalInterest);
+
+            generateAmortization(loanAmount, payment, term, rate);
+        }
+
+        // Simple rate estimation (Newton-Raphson approximation)
+        function estimateRate(PV, PMT, n) {
+            let r = 0.01; // Initial guess
+            for (let i = 0; i < 20; i++) {
+                const f = PMT * (1 - Math.pow(1 + r, -n)) / r - PV;
+                const fPrime = (PMT * (Math.pow(1 + r, -n) * (n * r + 1) - 1)) / (r * r);
+                r = r - f / fPrime;
+            }
+            return Math.max(r, 0);
+        }
+
+        // ✅ Loan Amortization
+        function generateAmortization(balance, monthlyPayment, term, rate) {
+            const tbody = document.getElementById('amortization-table').querySelector('tbody');
+            tbody.innerHTML = '';
+        
+            for (let month = 1; month <= term && balance > 0; month++) {
+                const interest = balance * rate;
+                const principal = Math.min(monthlyPayment - interest, balance);
+                balance -= principal;
+        
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${month}</td>
+                    <td>${formatCurrency(monthlyPayment)}</td>
+                    <td>${formatCurrency(interest)}</td>
+                    <td>${formatCurrency(principal)}</td>
+                    <td>${formatCurrency(Math.max(balance, 0))}</td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        // Run on load
+        generateAmortization();
+    </script>
+</body>
+</html>
