@@ -1,0 +1,39 @@
+{
+  "name": "firebase-bookkeeping-app",
+  "version": "2.0.0",
+  "description": "Modular Firebase-based bookkeeping and inventory management system",
+  "type": "module",
+  "main": "js/app.js",
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8080",
+    "lint": "eslint js/**/*.js",
+    "format": "prettier --write \"**/*.{js,css,html,md}\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "firebase",
+    "bookkeeping",
+    "inventory",
+    "pos",
+    "business-management"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/firebase-bookkeeping.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/firebase-bookkeeping/issues"
+  },
+  "homepage": "https://github.com/yourusername/firebase-bookkeeping#readme"
+}
